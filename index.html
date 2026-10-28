@@ -1,3 +1,13 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Union">
+<meta name="theme-color" content="#F2F4F7">
 <title>Union Pay Test</title>
 <style>
   :root{
@@ -12,13 +22,14 @@
     --nav:76px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{background:var(--page);-webkit-text-size-adjust:100%}
   html,body{margin:0;padding:0;min-height:100%}
   body{background:var(--page);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.4;
-    -webkit-font-smoothing:antialiased;overscroll-behavior:none}
+    -webkit-font-smoothing:antialiased;overscroll-behavior:none;touch-action:manipulation}
   button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;text-align:left}
   input{font:inherit;color:inherit}
 
-  #app{max-width:430px;margin:0 auto;position:relative;min-height:100svh}
+  #app{max-width:480px;margin:0 auto;position:relative;min-height:100svh}
   .screen{display:none;min-height:100svh}
   .screen.on{display:block}
   .pad{padding:0 20px}
@@ -62,7 +73,7 @@
     padding:20px;text-align:center;color:var(--ink-2);font-size:15px;margin-top:4px}
 
   /* bottom nav */
-  .nav{position:fixed;left:0;right:0;bottom:0;max-width:430px;margin:0 auto;z-index:20;
+  .nav{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;z-index:20;
     background:#fff;border-top:1px solid var(--border);
     height:calc(var(--nav) + var(--sb));padding-bottom:var(--sb);
     display:grid;grid-template-columns:1fr 1fr 1fr;align-items:start}
@@ -80,7 +91,7 @@
   #panel.on{display:block}
   #panel .scrim{position:absolute;inset:0;background:rgba(16,25,36,.46);
     backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-  #panel .sheet{position:absolute;left:0;right:0;bottom:0;max-width:430px;margin:0 auto;
+  #panel .sheet{position:absolute;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;
     padding:0 20px calc(var(--nav) + 30px + var(--sb))}
   .connect{background:#fff;border-radius:var(--r-lg);padding:18px;text-align:center}
   .connect .cam{height:92px;border-radius:var(--r-md);background:var(--cam);position:relative;overflow:hidden}
@@ -196,6 +207,8 @@
     z-index:60;opacity:0;transition:opacity .18s;pointer-events:none;max-width:86%;text-align:center}
   .toast.on{opacity:.95}
 </style>
+</head>
+<body>
 
 <div id="app">
 
@@ -594,3 +607,5 @@
   if(load() && state.name){ renderHome(); show('s-home'); } else { show('s-setup'); }
 })();
 </script>
+</body>
+</html>
