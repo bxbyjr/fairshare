@@ -1,0 +1,596 @@
+<title>Union Pay Test</title>
+<style>
+  :root{
+    --page:#F2F4F7; --surface:#FFFFFF; --brand:#2D5F7D; --brand-sub:#E3F0F8;
+    --ink:#1A2433; --ink-2:#5A6B7D; --border:#D9E2EA;
+    --ok-bg:#E1F5EE; --ok:#0F6E56; --pay-bg:#FDE9E7; --pay:#C0392B;
+    --cam:#121A26;
+    --r-sm:8px; --r-md:12px; --r-lg:16px;
+    --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Inter,system-ui,sans-serif;
+    --sb:env(safe-area-inset-bottom,0px);
+    --st:env(safe-area-inset-top,0px);
+    --nav:76px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;min-height:100%}
+  body{background:var(--page);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.4;
+    -webkit-font-smoothing:antialiased;overscroll-behavior:none}
+  button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;text-align:left}
+  input{font:inherit;color:inherit}
+
+  #app{max-width:430px;margin:0 auto;position:relative;min-height:100svh}
+  .screen{display:none;min-height:100svh}
+  .screen.on{display:block}
+  .pad{padding:0 20px}
+  .muted{color:var(--ink-2)}
+  .sect{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
+
+  .btn{display:block;width:100%;padding:17px 20px;border-radius:var(--r-md);background:var(--brand);
+    color:#fff;font-size:17px;font-weight:600;text-align:center}
+  .btn[disabled]{opacity:.38}
+  .btn.ghost{background:none;color:var(--ink-2);font-weight:500}
+  .field{width:100%;padding:14px;border-radius:var(--r-md);border:1px solid var(--border);
+    background:#fff;font-size:16px}
+  .field::placeholder{color:#9AA9B8}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;
+    padding:calc(14px + var(--st)) 20px 8px;min-height:52px}
+  .topbar .t{font-size:17px;font-weight:600}
+  .linkbtn{color:var(--ink-2);font-size:16px;padding:6px 0;background:none}
+
+  .avatar{width:30px;height:30px;border-radius:50%;background:var(--brand-sub);color:var(--brand);
+    display:grid;place-items:center;font-size:11px;font-weight:700;flex:none}
+
+  /* ---------------- setup (test harness, deliberately not an app screen) ---------------- */
+  #s-setup .wrap{padding:calc(44px + var(--st)) 20px 0}
+  .testcard{background:#fff;border:1px solid var(--border);border-radius:var(--r-lg);padding:22px}
+
+  /* ---------------- home ---------------- */
+  .hdr{display:flex;align-items:center;justify-content:space-between;
+    padding:calc(16px + var(--st)) 20px 14px}
+  .hdr h1{font-size:22px;font-weight:700;margin:0;letter-spacing:-.01em}
+  .body{padding:0 20px calc(var(--nav) + 46px + var(--sb))}
+  .seclead{display:flex;justify-content:space-between;align-items:baseline;margin:6px 0 12px}
+  .row{display:flex;gap:14px;align-items:center;background:#fff;border:1px solid var(--border);
+    border-radius:var(--r-md);padding:14px;margin-bottom:10px}
+  .row .avatar{width:40px;height:40px;font-size:13px}
+  .row .m{flex:1;min-width:0}
+  .row .m b{display:block;font-size:15px;font-weight:600}
+  .row .m span{font-size:13px;color:var(--ink-2)}
+  .row .chev{color:#B6C2CE;font-size:20px}
+  .hint{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);
+    padding:20px;text-align:center;color:var(--ink-2);font-size:15px;margin-top:4px}
+
+  /* bottom nav */
+  .nav{position:fixed;left:0;right:0;bottom:0;max-width:430px;margin:0 auto;z-index:20;
+    background:#fff;border-top:1px solid var(--border);
+    height:calc(var(--nav) + var(--sb));padding-bottom:var(--sb);
+    display:grid;grid-template-columns:1fr 1fr 1fr;align-items:start}
+  .nav .ni{display:flex;flex-direction:column;align-items:center;gap:5px;padding-top:12px;
+    color:var(--ink-2);font-size:11px}
+  .nav .ni svg{width:22px;height:22px}
+  .ubtn{position:fixed;left:50%;transform:translateX(-50%);
+    bottom:calc(var(--nav) - 34px + var(--sb));
+    width:62px;height:62px;border-radius:50%;background:var(--brand);
+    display:grid;place-items:center;z-index:45;box-shadow:0 8px 20px rgba(45,95,125,.32)}
+  .ubtn svg{width:25px;height:25px}
+
+  /* ---------------- panel ---------------- */
+  #panel{position:fixed;inset:0;z-index:40;display:none}
+  #panel.on{display:block}
+  #panel .scrim{position:absolute;inset:0;background:rgba(16,25,36,.46);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+  #panel .sheet{position:absolute;left:0;right:0;bottom:0;max-width:430px;margin:0 auto;
+    padding:0 20px calc(var(--nav) + 30px + var(--sb))}
+  .connect{background:#fff;border-radius:var(--r-lg);padding:18px;text-align:center}
+  .connect .cam{height:92px;border-radius:var(--r-md);background:var(--cam);position:relative;overflow:hidden}
+  .connect .cam .bk{position:absolute;inset:0}
+  .connect .cam .bk i{position:absolute;width:16px;height:16px;border:2px solid rgba(255,255,255,.6)}
+  .connect .cam .bk i:nth-child(1){top:11px;left:11px;border-right:0;border-bottom:0;border-radius:3px 0 0 0}
+  .connect .cam .bk i:nth-child(2){top:11px;right:11px;border-left:0;border-bottom:0;border-radius:0 3px 0 0}
+  .connect .cam .bk i:nth-child(3){bottom:11px;left:11px;border-right:0;border-top:0;border-radius:0 0 0 3px}
+  .connect .cam .bk i:nth-child(4){bottom:11px;right:11px;border-left:0;border-top:0;border-radius:0 0 3px 0}
+  .connect #pqr{width:132px;height:132px;margin:14px auto 0}
+  .connect #pqr img,.connect #pqr canvas{width:132px !important;height:132px !important;display:block}
+  .connect .me{display:flex;gap:9px;align-items:center;justify-content:center;margin-top:14px;font-size:15px}
+  .connect .cap{color:var(--ink-2);font-size:14px;margin-top:10px}
+  .prow{display:flex;align-items:center;gap:14px;background:#fff;border-radius:var(--r-md);
+    padding:15px 16px;margin-top:10px;width:100%}
+  .prow .ic{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;flex:none}
+  .prow .ic.pay{background:var(--pay-bg)}
+  .prow .ic.req{background:var(--ok-bg)}
+  .prow .ic svg{width:18px;height:18px}
+  .prow .lab{flex:1;font-size:16px;font-weight:600}
+  .prow .chev{color:#B6C2CE;font-size:20px}
+
+  /* ---------------- compose ---------------- */
+  .camwrap{position:relative;margin:6px 20px 0;border-radius:var(--r-lg);overflow:hidden;
+    background:var(--cam);height:148px}
+  .camwrap video{width:100%;height:100%;object-fit:cover;display:block}
+  .camwrap .bk{position:absolute;inset:0;pointer-events:none}
+  .camwrap .bk i{position:absolute;width:22px;height:22px;border:2px solid rgba(255,255,255,.72)}
+  .camwrap .bk i:nth-child(1){top:14px;left:14px;border-right:0;border-bottom:0;border-radius:4px 0 0 0}
+  .camwrap .bk i:nth-child(2){top:14px;right:14px;border-left:0;border-bottom:0;border-radius:0 4px 0 0}
+  .camwrap .bk i:nth-child(3){bottom:14px;left:14px;border-right:0;border-top:0;border-radius:0 0 0 4px}
+  .camwrap .bk i:nth-child(4){bottom:14px;right:14px;border-left:0;border-top:0;border-radius:0 0 4px 0}
+  .camwrap .cl{position:absolute;left:0;right:0;bottom:12px;text-align:center;
+    color:rgba(255,255,255,.66);font-size:12px;letter-spacing:.04em}
+  .camwrap.dead video{display:none}
+  .or{display:flex;align-items:center;gap:12px;margin:14px 20px}
+  .or:before,.or:after{content:'';flex:1;height:1px;background:var(--border)}
+  .or span{font-size:11px;letter-spacing:.16em;color:var(--ink-2);font-weight:600}
+  .amtbox{text-align:center;padding:0 20px}
+  .amtbox .v{font-size:52px;font-weight:700;letter-spacing:-.03em;line-height:1.08}
+  .amtbox .v.zero{color:#B6C2CE}
+  .chip{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:var(--brand-sub);
+    color:var(--brand);border-radius:999px;padding:6px 14px;font-size:14px;font-weight:600}
+  .keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 20px 0}
+  .keys button{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);
+    padding:12px 0;font-size:21px;font-weight:500;text-align:center}
+  .keys button:active{background:#EDF1F5}
+
+  /* ---------------- code ---------------- */
+  #s-code{background:var(--brand);color:#fff}
+  #s-code .linkbtn{color:rgba(255,255,255,.82)}
+  .qrcard{background:#fff;border-radius:var(--r-lg);padding:18px;width:244px;margin:6px auto 0}
+  .qrcard #qr{width:208px;height:208px;margin:0 auto}
+  .qrcard #qr img,.qrcard #qr canvas{width:208px !important;height:208px !important;display:block}
+  .dirlab{text-align:center;margin-top:20px;font-size:11px;letter-spacing:.2em;
+    color:rgba(255,255,255,.72);font-weight:700}
+  #s-code .big{text-align:center;font-size:40px;font-weight:700;letter-spacing:-.02em;margin-top:3px}
+  #s-code .item{text-align:center;font-size:16px;color:rgba(255,255,255,.78);margin-top:1px;min-height:22px}
+  #s-code .hr{height:1px;background:rgba(255,255,255,.2);margin:20px 64px}
+  #s-code .who{display:flex;gap:10px;align-items:center;justify-content:center;font-size:15px}
+  #s-code .who .avatar{background:rgba(255,255,255,.2);color:#fff;width:28px;height:28px}
+  #s-code .grp{text-align:center;color:rgba(255,255,255,.66);font-size:14px;margin-top:6px}
+  #s-code .wait{text-align:center;color:rgba(255,255,255,.72);font-size:14px;margin-top:24px}
+  .harness{text-align:center;padding:18px 20px calc(22px + var(--sb))}
+  .harness button{color:rgba(255,255,255,.6);font-size:13px;text-decoration:underline;
+    text-underline-offset:3px;background:none}
+  .harness details{margin-top:12px}
+  .harness summary{color:rgba(255,255,255,.45);font-size:12px;cursor:pointer;list-style:none}
+  .harness summary::-webkit-details-marker{display:none}
+  .harness textarea{width:100%;margin-top:9px;border-radius:var(--r-sm);border:0;padding:9px;
+    font-size:11px;font-family:ui-monospace,Menlo,monospace;height:58px;resize:none}
+
+  /* ---------------- receipt ---------------- */
+  .receipt{position:relative;background:#fff;width:286px;margin:16px auto 0;
+    padding:24px 22px 28px;border-radius:4px;box-shadow:0 8px 24px rgba(26,36,51,.09)}
+  .receipt:after{content:'';position:absolute;left:0;right:0;bottom:-7px;height:14px;
+    background:radial-gradient(circle at 7px 7px, var(--page) 7px, transparent 7.5px) repeat-x;
+    background-size:14px 14px}
+  .receipt .rh{text-align:center;font-size:11px;letter-spacing:.2em;font-weight:700;color:var(--brand)}
+  .receipt .when{text-align:center;font-size:10px;letter-spacing:.05em;color:var(--ink-2);
+    margin-top:7px;font-family:ui-monospace,Menlo,monospace}
+  .receipt .avatar{margin:16px auto 0;width:30px;height:30px}
+  .receipt .nm{text-align:center;font-size:16px;font-weight:600;margin-top:10px}
+  .receipt .rule{height:1px;background:var(--border);margin:17px 0}
+  .receipt .li{display:flex;justify-content:space-between;gap:12px;font-size:15px}
+  .receipt .li b{font-weight:600}
+  .receipt .tot{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+  .receipt .tot .l{font-size:11px;letter-spacing:.14em;color:var(--ink-2);font-weight:600}
+  .receipt .tot .r{font-size:19px;font-weight:700}
+  .receipt .dash{border-top:1px dashed var(--border);margin-top:16px}
+  .receipt .paid{text-align:center;margin-top:10px;font-size:10px;letter-spacing:.34em;
+    color:var(--ok);font-weight:600}
+  .balline{text-align:center;margin-top:30px}
+  .balline .l{font-size:14px;color:var(--ink-2)}
+  .balline .r{font-size:18px;font-weight:700;margin-top:3px}
+  .foot{padding:14px 20px calc(16px + var(--sb))}
+
+  /* receiver: told, not given a receipt */
+  #s-done.recv{background:var(--brand);color:#fff}
+  #s-done.recv .topbar .t{display:none}
+  #s-done.recv .balline .l{color:rgba(255,255,255,.62)}
+  #s-done.recv .btn{background:#fff;color:var(--brand)}
+  .conf{text-align:center;padding:52px 20px 0}
+  .conf .tick{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.16);
+    display:grid;place-items:center;margin:0 auto}
+  .conf .tick svg{width:30px;height:30px}
+  .conf .t1{font-size:16px;color:rgba(255,255,255,.8);margin-top:26px}
+  .conf .t2{font-size:44px;font-weight:700;letter-spacing:-.02em;margin-top:3px}
+  .conf .t3{font-size:16px;color:rgba(255,255,255,.78);margin-top:1px;min-height:22px}
+
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(120px + var(--sb));
+    background:var(--ink);color:#fff;padding:10px 16px;border-radius:999px;font-size:14px;
+    z-index:60;opacity:0;transition:opacity .18s;pointer-events:none;max-width:86%;text-align:center}
+  .toast.on{opacity:.95}
+</style>
+
+<div id="app">
+
+  <!-- ===== setup: clearly the test harness, not an app screen ===== -->
+  <section class="screen on" id="s-setup">
+    <div class="wrap">
+      <div class="sect">Prototype setup</div>
+      <h1 style="font-size:25px;font-weight:700;margin:10px 0 18px;letter-spacing:-.02em">Set up this phone</h1>
+      <div class="testcard">
+        <p class="muted" style="margin:0 0 16px;font-size:15px">Two phones, two names. This only decides what the receipts say, and it stays on this phone.</p>
+        <input class="field" id="in-name" placeholder="Your name" autocomplete="name">
+        <div style="height:10px"></div>
+        <input class="field" id="in-group" placeholder="Group" value="The Velvet Tavern">
+        <div style="height:18px"></div>
+        <button class="btn" id="go-setup">Open Union</button>
+      </div>
+      <p class="muted" style="font-size:13px;text-align:center;margin-top:16px">Starts you with 50 tokens. None of this is real.</p>
+    </div>
+  </section>
+
+  <!-- ===== home ===== -->
+  <section class="screen" id="s-home">
+    <div class="hdr">
+      <h1>Union</h1>
+      <button class="avatar" id="me-av" title="Reset this phone">--</button>
+    </div>
+    <div class="body">
+      <div class="seclead">
+        <span class="sect">Your people</span>
+        <span class="sect" id="h-count">3</span>
+      </div>
+      <div id="h-people"></div>
+      <div class="hint">Meet someone in person and scan their code to add them.</div>
+    </div>
+    <nav class="nav">
+      <div class="ni">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19c.6-3.2 3.3-5 6.5-5s5.9 1.8 6.5 5"/></svg>
+        <span>Contacts</span>
+      </div>
+      <div class="ni"><span style="height:22px"></span><span>Meet</span></div>
+      <div class="ni">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="9" cy="9" r="3"/><circle cx="16.5" cy="10.5" r="2.4"/><path d="M3 18c.5-2.6 2.8-4 6-4s5.5 1.4 6 4"/></svg>
+        <span>Groups</span>
+      </div>
+    </nav>
+    <button class="ubtn" id="open-panel" aria-label="Union">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linejoin="round">
+        <rect x="3.2" y="3.2" width="7" height="7" rx="1.6"/><rect x="13.8" y="3.2" width="7" height="7" rx="1.6"/>
+        <rect x="3.2" y="13.8" width="7" height="7" rx="1.6"/><path d="M13.8 13.8h7v7h-7z"/></svg>
+    </button>
+  </section>
+
+  <!-- ===== compose ===== -->
+  <section class="screen" id="s-compose">
+    <div class="topbar">
+      <button class="linkbtn" id="c-cancel" style="width:62px">Cancel</button>
+      <div class="t" id="c-title">Pay</div>
+      <div style="width:62px"></div>
+    </div>
+    <div class="camwrap" id="camwrap">
+      <video id="cam" playsinline muted autoplay></video>
+      <div class="bk"><i></i><i></i><i></i><i></i></div>
+      <div class="cl" id="cam-label">Scan their code</div>
+    </div>
+    <div class="or"><span>OR</span></div>
+    <div class="amtbox">
+      <div class="v zero" id="c-amt">0</div>
+      <div class="chip" id="c-grp">The Velvet Tavern</div>
+    </div>
+    <div class="pad" style="margin-top:14px">
+      <input class="field" id="c-item" placeholder="What is it for?" maxlength="40">
+    </div>
+    <div class="keys" id="keys">
+      <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+      <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+      <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+      <button data-k="c">C</button><button data-k="0">0</button><button data-k="x">&#9003;</button>
+    </div>
+    <div class="foot" style="padding-top:16px">
+      <button class="btn" id="c-go" disabled>Pay</button>
+      <button class="btn ghost" id="c-paste" style="margin-top:2px;font-size:13px">Enter a code by hand</button>
+    </div>
+  </section>
+
+  <!-- ===== my code ===== -->
+  <section class="screen" id="s-code">
+    <div class="topbar">
+      <button class="linkbtn" id="k-cancel" style="width:62px">Cancel</button>
+      <div style="width:62px"></div><div style="width:62px"></div>
+    </div>
+    <div class="qrcard"><div id="qr"></div></div>
+    <div class="dirlab" id="k-dir">REQUESTING</div>
+    <div class="big"><span id="k-amt">0</span> tokens</div>
+    <div class="item" id="k-item"></div>
+    <div class="hr"></div>
+    <div class="who"><div class="avatar" id="k-ini">--</div><span id="k-name">You</span></div>
+    <div class="grp" id="k-grp">The Velvet Tavern</div>
+    <div class="wait">Hold this up for them to scan.</div>
+    <div class="harness">
+      <button id="k-done">Prototype only: mark as scanned</button>
+      <details><summary>Cannot scan? Show the raw code</summary>
+        <textarea id="k-raw" readonly onclick="this.select()"></textarea>
+      </details>
+    </div>
+  </section>
+
+  <!-- ===== confirm ===== -->
+  <section class="screen" id="s-confirm">
+    <div class="topbar">
+      <button class="linkbtn" id="f-cancel" style="width:62px">Cancel</button>
+      <div class="t">Confirm</div>
+      <div style="width:62px"></div>
+    </div>
+    <div id="f-receipt"></div>
+    <div class="balline">
+      <div class="l">Your balance in <span class="f-grp"></span></div>
+      <div class="r"><span id="f-bal">0</span> tokens</div>
+    </div>
+    <div class="foot" style="padding-top:26px">
+      <button class="btn" id="f-pay">Pay</button>
+      <button class="btn ghost" id="f-no" style="margin-top:2px">Decline</button>
+    </div>
+  </section>
+
+  <!-- ===== done ===== -->
+  <section class="screen" id="s-done">
+    <div class="topbar">
+      <div style="width:62px"></div>
+      <div class="t" id="d-title">You paid</div>
+      <div style="width:62px"></div>
+    </div>
+    <div id="d-receipt"></div>
+    <div class="balline">
+      <div class="l">Your balance in <span class="f-grp"></span></div>
+      <div class="r"><span id="d-bal">0</span> tokens</div>
+    </div>
+    <div class="foot" style="padding-top:26px"><button class="btn" id="d-done">Done</button></div>
+  </section>
+
+  <!-- ===== panel ===== -->
+  <div id="panel">
+    <div class="scrim" id="p-scrim"></div>
+    <div class="sheet">
+      <div class="connect">
+        <div class="cam"><div class="bk"><i></i><i></i><i></i><i></i></div></div>
+        <div id="pqr"></div>
+        <div class="me"><div class="avatar" id="p-ini">--</div><span id="p-name">You</span></div>
+        <div class="cap">Show your phones to each other</div>
+      </div>
+      <button class="prow" id="p-pay">
+        <span class="ic pay"><svg viewBox="0 0 24 24" fill="none" stroke="#C0392B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span>
+        <span class="lab">Pay someone</span><span class="chev">&#8250;</span>
+      </button>
+      <button class="prow" id="p-req">
+        <span class="ic req"><svg viewBox="0 0 24 24" fill="none" stroke="#0F6E56" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg></span>
+        <span class="lab">Request</span><span class="chev">&#8250;</span>
+      </button>
+    </div>
+    <button class="ubtn" id="close-panel" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script>
+(function(){
+  'use strict';
+  var LS = 'union-paytest-v2';
+  var state = { name:'', ini:'', group:'The Velvet Tavern', bal:50, people:[] };
+  var mode = 'pay', amt = 0, pending = null;
+  var stream = null, scanning = false, rafId = null, lastSeen = 0;
+
+  var $ = function(s){ return document.querySelector(s); };
+  var $$ = function(s){ return Array.prototype.slice.call(document.querySelectorAll(s)); };
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  function load(){ try{ var r=localStorage.getItem(LS); if(r){ state=Object.assign(state,JSON.parse(r)); return true; } }catch(e){} return false; }
+  function save(){ try{ localStorage.setItem(LS,JSON.stringify(state)); }catch(e){} }
+  function initials(n){ var p=(n||'').trim().split(/\s+/).filter(Boolean);
+    if(!p.length) return '??'; return (p[0][0]+(p.length>1?p[p.length-1][0]:'')).toUpperCase(); }
+
+  function show(id){
+    $$('.screen').forEach(function(s){ s.classList.toggle('on', s.id===id); });
+    if(id!=='s-compose') stopCam();
+    window.scrollTo(0,0);
+  }
+  function toast(m){ var t=$('#toast'); t.textContent=m; t.classList.add('on');
+    clearTimeout(t._t); t._t=setTimeout(function(){ t.classList.remove('on'); },2200); }
+
+  /* ---------- payload ---------- */
+  function encode(o){ var s=['U1',o.dir,o.amt,o.item||'',o.name||'',o.ini||'',o.group||''].join('\u001f');
+    return 'UNION:'+btoa(unescape(encodeURIComponent(s))); }
+  function decode(t){
+    if(!t||t.indexOf('UNION:')!==0) return null;
+    try{ var s=decodeURIComponent(escape(atob(t.slice(6)))); var p=s.split('\u001f');
+      if(p[0]!=='U1') return null; var n=parseInt(p[2],10); if(!(n>0)) return null;
+      return {dir:p[1],amt:n,item:p[3],name:p[4]||'Someone',ini:p[5]||'??',group:p[6]||''};
+    }catch(e){ return null; }
+  }
+
+  /* ---------- receipt ---------- */
+  function stampTxt(d){
+    var dd=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], mm=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    var h=d.getHours(), ap=h>=12?'PM':'AM'; h=h%12||12; var m=d.getMinutes(); if(m<10) m='0'+m;
+    return dd[d.getDay()]+', '+mm[d.getMonth()]+' '+d.getDate()+', '+d.getFullYear()+'  ·  '+h+':'+m+' '+ap;
+  }
+  function receiptHTML(o){
+    return '<div class="receipt">'
+      + '<div class="rh">'+esc((o.group||'').toUpperCase())+'</div>'
+      + '<div class="when">'+esc(stampTxt(o.when||new Date()))+'</div>'
+      + '<div class="avatar">'+esc(o.ini)+'</div>'
+      + '<div class="nm">'+esc(o.who)+'</div>'
+      + '<div class="rule"></div>'
+      + '<div class="li"><span>'+esc(o.item||'No description')+'</span><b>'+o.amt+'</b></div>'
+      + '<div class="rule"></div>'
+      + '<div class="tot"><span class="l">TOTAL</span><span class="r">'+o.amt+' tokens</span></div>'
+      + (o.paid ? '<div class="dash"></div><div class="paid">PAID</div>' : '')
+      + '</div>';
+  }
+
+  /* ---------- camera ---------- */
+  function stopCam(){ scanning=false;
+    if(rafId){ cancelAnimationFrame(rafId); rafId=null; }
+    if(stream){ stream.getTracks().forEach(function(t){ t.stop(); }); stream=null; } }
+  function startCam(){
+    var v=$('#cam'), w=$('#camwrap'), l=$('#cam-label');
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+      w.classList.add('dead'); l.textContent='No camera on this browser'; return; }
+    l.textContent='Starting camera…';
+    navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false})
+      .then(function(s){ stream=s; v.srcObject=s; v.setAttribute('playsinline',''); return v.play(); })
+      .then(function(){ w.classList.remove('dead'); l.textContent='Scan their code'; scanning=true; tick(); })
+      .catch(function(e){ w.classList.add('dead');
+        l.textContent=(e&&e.name==='NotAllowedError')?'Camera blocked. Use Enter a code by hand.':'No camera here. Use Enter a code by hand.'; });
+  }
+  var cv=document.createElement('canvas');
+  function tick(){
+    if(!scanning) return;
+    var v=$('#cam');
+    if(v.readyState===v.HAVE_ENOUGH_DATA && typeof jsQR==='function'){
+      var w=v.videoWidth,h=v.videoHeight;
+      if(w&&h){
+        var sc=Math.min(1,520/Math.max(w,h));
+        cv.width=Math.round(w*sc); cv.height=Math.round(h*sc);
+        var c=cv.getContext('2d',{willReadFrequently:true});
+        c.drawImage(v,0,0,cv.width,cv.height);
+        var d=c.getImageData(0,0,cv.width,cv.height);
+        var r=jsQR(d.data,d.width,d.height,{inversionAttempts:'dontInvert'});
+        if(r&&r.data&&Date.now()-lastSeen>1200){
+          lastSeen=Date.now();
+          var p=decode(r.data.trim());
+          if(p){ stopCam(); onScanned(p); return; }
+        }
+      }
+    }
+    rafId=requestAnimationFrame(tick);
+  }
+
+  /* ---------- flow ---------- */
+  function openCompose(m){
+    mode=m; amt=0; $('#c-item').value='';
+    $('#c-title').textContent = (m==='pay'?'Pay':'Request');
+    $('#c-grp').textContent = state.group;
+    drawAmt(); $('#panel').classList.remove('on'); show('s-compose'); startCam();
+  }
+  function drawAmt(){
+    var e=$('#c-amt'); e.textContent=amt; e.classList.toggle('zero',amt===0);
+    var b=$('#c-go'); b.disabled=!(amt>0);
+    b.textContent = amt>0 ? (mode==='pay'?'Pay '+amt+' tokens':'Request '+amt+' tokens')
+                          : (mode==='pay'?'Pay':'Request');
+  }
+  function qrInto(el, text, px){
+    el.innerHTML='';
+    try{ new QRCode(el,{text:text,width:px,height:px,colorDark:'#1A2433',colorLight:'#ffffff',
+      correctLevel:(window.QRCode&&QRCode.CorrectLevel)?QRCode.CorrectLevel.M:1}); }
+    catch(e){ el.innerHTML='<div style="font-size:10px;word-break:break-all">'+esc(text)+'</div>'; }
+  }
+  function showMyCode(){
+    var p={dir:mode,amt:amt,item:$('#c-item').value.trim(),name:state.name,ini:state.ini,group:state.group};
+    var txt=encode(p);
+    qrInto($('#qr'),txt,208);
+    $('#k-raw').value=txt;
+    $('#k-dir').textContent = mode==='pay'?'PAYING':'REQUESTING';
+    $('#k-amt').textContent = amt;
+    $('#k-item').textContent = p.item||'';
+    $('#k-ini').textContent = state.ini;
+    $('#k-name').textContent = state.name;
+    $('#k-grp').textContent = state.group;
+    show('s-code');
+  }
+  function onScanned(p){
+    if(p.dir==='request'){
+      pending=p;
+      $('#f-receipt').innerHTML=receiptHTML({who:p.name,ini:p.ini,group:p.group||state.group,
+        item:p.item,amt:p.amt,paid:false,when:new Date()});
+      $('#f-bal').textContent=state.bal;
+      $$('.f-grp').forEach(function(e){ e.textContent=p.group||state.group; });
+      $('#f-pay').textContent='Pay '+p.amt+' tokens';
+      $('#f-pay').disabled = p.amt>state.bal;
+      if(p.amt>state.bal) toast('Not enough tokens for that');
+      show('s-confirm');
+    } else {
+      settle('in',p.amt,p.name,p.ini,p.item,p.group);
+    }
+  }
+  function settle(dir,n,who,ini,item,group){
+    state.bal = dir==='out' ? state.bal-n : state.bal+n;
+    if(who && who!=='Someone' && state.people.indexOf(who)===-1) state.people.push(who);
+    save();
+    var isIn = dir==='in';
+    $('#s-done').classList.toggle('recv', isIn);
+    $('#d-title').textContent = isIn ? '' : 'You paid';
+    $('#d-receipt').innerHTML = isIn
+      ? '<div class="conf"><div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" '
+        + 'stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>'
+        + '<div class="t1">' + esc(who) + ' paid you</div>'
+        + '<div class="t2">' + n + ' tokens</div>'
+        + '<div class="t3">' + esc(item||'') + '</div></div>'
+      : receiptHTML({who:who,ini:ini,group:group||state.group,
+          item:item,amt:n,paid:true,when:new Date()});
+    $('#d-bal').textContent=state.bal;
+    $$('.f-grp').forEach(function(e){ e.textContent=group||state.group; });
+    show('s-done');
+  }
+
+  function renderHome(){
+    $('#me-av').textContent=state.ini;
+    $('#p-ini').textContent=state.ini;
+    $('#p-name').textContent=state.name;
+    var names = state.people.slice();
+    while(names.length<1) names.push('Philip Rosedale');
+    $('#h-count').textContent=names.length;
+    $('#h-people').innerHTML=names.map(function(n){
+      return '<div class="row"><div class="avatar">'+esc(initials(n))+'</div>'
+        +'<div class="m"><b>'+esc(n)+'</b><span>'+esc(state.group)+'</span></div>'
+        +'<div class="chev">&#8250;</div></div>';
+    }).join('');
+    qrInto($('#pqr'),'https://union.app/i/'+(state.ini||'XX')+Math.abs(hash(state.name)).toString(36).slice(0,6),132);
+  }
+  function hash(s){ var h=0; for(var i=0;i<(s||'').length;i++){ h=(h*31+s.charCodeAt(i))|0; } return h; }
+
+  /* ---------- wiring ---------- */
+  $('#go-setup').addEventListener('click',function(){
+    var n=$('#in-name').value.trim();
+    if(!n){ toast('Pop your name in first'); $('#in-name').focus(); return; }
+    state.name=n; state.ini=initials(n);
+    state.group=$('#in-group').value.trim()||'The Velvet Tavern';
+    save(); renderHome(); show('s-home');
+  });
+  $('#me-av').addEventListener('click',function(){
+    if(!confirm('Reset this phone and start over?')) return;
+    try{ localStorage.removeItem(LS); }catch(e){} location.reload();
+  });
+  $('#open-panel').addEventListener('click',function(){ $('#panel').classList.add('on'); });
+  $('#close-panel').addEventListener('click',function(){ $('#panel').classList.remove('on'); });
+  $('#p-scrim').addEventListener('click',function(){ $('#panel').classList.remove('on'); });
+  $('#p-pay').addEventListener('click',function(){ openCompose('pay'); });
+  $('#p-req').addEventListener('click',function(){ openCompose('request'); });
+
+  $('#keys').addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    var k=b.getAttribute('data-k');
+    if(k==='c') amt=0; else if(k==='x') amt=Math.floor(amt/10);
+    else if(amt<100000) amt=amt*10+parseInt(k,10);
+    drawAmt();
+  });
+  $('#c-cancel').addEventListener('click',function(){ stopCam(); renderHome(); show('s-home'); });
+  $('#c-go').addEventListener('click',function(){ stopCam(); showMyCode(); });
+  $('#c-paste').addEventListener('click',function(){
+    var v=prompt('Paste the code from their phone'); if(!v) return;
+    var p=decode(v.trim()); if(!p){ toast('That code did not read'); return; }
+    stopCam(); onScanned(p);
+  });
+  $('#k-cancel').addEventListener('click',function(){ renderHome(); show('s-home'); });
+  $('#k-done').addEventListener('click',function(){
+    var item=$('#k-item').textContent.trim();
+    settle(mode==='pay'?'out':'in', amt, 'Someone', '?', item, state.group);
+  });
+  $('#f-no').addEventListener('click',function(){ pending=null; renderHome(); show('s-home'); });
+  $('#f-pay').addEventListener('click',function(){
+    if(!pending) return; var p=pending; pending=null;
+    settle('out',p.amt,p.name,p.ini,p.item,p.group);
+  });
+  $('#d-done').addEventListener('click',function(){ renderHome(); show('s-home'); });
+
+  document.addEventListener('visibilitychange',function(){
+    if(document.hidden) stopCam();
+    else if($('#s-compose').classList.contains('on')) startCam();
+  });
+
+  if(load() && state.name){ renderHome(); show('s-home'); } else { show('s-setup'); }
+})();
+</script>
