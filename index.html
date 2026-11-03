@@ -163,8 +163,14 @@
   .amtbox{text-align:center;padding:0 20px;flex:none}
   .amtbox .v{font-size:clamp(38px,6.2dvh,50px);font-weight:700;letter-spacing:-.03em;line-height:1.08;font-variant-numeric:tabular-nums}
   .amtbox .v.zero{color:#B6C2CE}
-  .amtbox .v .dec{font-size:34px;font-weight:600;color:var(--ink-2)}
-  .chip{display:inline-flex;align-items:center;gap:6px;margin-top:6px;background:var(--brand-sub);color:var(--brand);border-radius:999px;padding:6px 14px;font-size:14px;font-weight:600}
+  .amtbox .v .dec{font-size:.68em;font-weight:600;color:var(--ink-2)}
+  .sym{font-size:.6em;font-weight:600;opacity:.72;margin-right:.1em;vertical-align:baseline}
+  .curname{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin-top:0}
+  .curname.light{color:rgba(255,255,255,.7)}
+  .qrcard #qr{position:relative}
+  .qrbadge{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:#fff;
+    display:grid;place-items:center;font-size:22px;font-weight:700;color:var(--brand);box-shadow:0 0 0 3px #fff}
+  .chip{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:var(--brand-sub);color:var(--brand);border-radius:999px;padding:6px 14px;font-size:14px;font-weight:600}
   .keys{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:8px;padding:10px 20px 0;flex:1;min-height:194px}
   .keys button{background:#fff;border:1px solid var(--border);border-radius:14px;padding:0;min-height:40px;font-size:25px;font-weight:500;text-align:center;transition:transform .08s,background .08s}
   .keys button:active{background:#EDF1F5;transform:scale(.96)}
@@ -206,6 +212,7 @@
   .receipt .tot{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
   .receipt .tot .l{font-size:11px;letter-spacing:.14em;color:var(--ink-2);font-weight:600}
   .receipt .tot .r{font-size:19px;font-weight:700}
+  .receipt .totcur{text-align:right;font-size:10px;letter-spacing:.14em;color:var(--ink-2);font-weight:600;margin-top:2px;text-transform:uppercase}
   .receipt .dash{border-top:1px dashed var(--border);margin-top:16px}
   .receipt .paid{text-align:center;margin-top:10px;font-size:10px;letter-spacing:.34em;color:var(--ok);font-weight:600}
   .balline{text-align:center;margin-top:22px;flex:none}
@@ -223,7 +230,7 @@
   .conf .tick svg{width:30px;height:30px}
   .conf .t1{font-size:16px;color:rgba(255,255,255,.8);margin-top:26px}
   .conf .t2{font-size:44px;font-weight:700;letter-spacing:-.02em;margin-top:3px}
-  .conf .t3{font-size:16px;color:rgba(255,255,255,.78);margin-top:1px;min-height:22px}
+  .conf .t3{font-size:16px;color:rgba(255,255,255,.78);margin-top:6px;min-height:22px}
 
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(120px + var(--sb));background:var(--ink);color:#fff;
     padding:10px 16px;border-radius:999px;font-size:14px;z-index:70;opacity:0;transition:opacity .18s;pointer-events:none;max-width:86%;text-align:center}
@@ -260,10 +267,16 @@
         <input class="field" id="in-name" placeholder="Your name" autocomplete="name">
         <div style="height:10px"></div>
         <input class="field" id="in-group" placeholder="Group" value="The Velvet Tavern">
+        <div style="height:10px"></div>
+        <div style="display:flex;gap:10px">
+          <input class="field" id="in-sym" placeholder="⚱" value="⚜" maxlength="2" style="width:74px;text-align:center;font-size:20px" aria-label="Currency symbol">
+          <input class="field" id="in-cur" placeholder="Currency name" value="tokens" maxlength="18" aria-label="Currency name">
+        </div>
+        <p class="muted" style="margin:8px 0 0;font-size:12px">The symbol and name your group voted for. Try $, € or an emoji.</p>
         <div style="height:18px"></div>
         <button class="btn" id="go-setup">Open Union</button>
       </div>
-      <p class="muted" style="font-size:13px;text-align:center;margin-top:16px">Starts you with 50 tokens. None of this is real.</p>
+      <p class="muted" style="font-size:13px;text-align:center;margin-top:16px">Starts you with 50 of your group’s currency. None of this is real.</p>
     </div>
   </section>
 
@@ -278,7 +291,7 @@
         <span class="sect" id="h-count">1</span>
       </div>
       <div id="h-people"></div>
-      <div class="hint">Meet someone in person and scan their code to add them.</div>
+      <div class="hint" id="h-hint">Meet someone in person and scan their code to add them.</div>
     </div>
     <nav class="nav">
       <div class="ni">
@@ -307,6 +320,7 @@
     <div class="or"><span>OR</span></div>
     <div class="amtbox">
       <div class="v zero" id="c-amt" aria-live="polite">0</div>
+      <div class="curname" id="c-cur">tokens</div>
       <div class="chip" id="c-grp">The Velvet Tavern</div>
     </div>
     <div class="pad" style="margin-top:10px;flex:none">
@@ -330,8 +344,9 @@
     </div>
     <div class="qrcard"><div id="qr"></div></div>
     <div class="dirlab" id="k-dir">REQUESTING</div>
-    <div class="big"><span id="k-amt">0</span> tokens</div>
-    <div class="item" id="k-item"></div>
+    <div class="big" id="k-big">0</div>
+    <div class="curname light" style="text-align:center" id="k-cur">tokens</div>
+    <div class="item" id="k-item" style="margin-top:6px"></div>
     <div class="hr"></div>
     <div class="who"><div class="avatar" id="k-ini">--</div><span id="k-name">You</span></div>
     <div class="grp" id="k-grp">The Velvet Tavern</div>
@@ -353,7 +368,7 @@
     <div id="f-receipt"></div>
     <div class="balline">
       <div class="l">Your balance in <span class="f-grp"></span></div>
-      <div class="r"><span id="f-bal">0</span> tokens</div>
+      <div class="r" id="f-bal">0</div>
     </div>
     <div class="foot" style="padding-top:26px">
       <button class="btn" id="f-pay">Pay</button>
@@ -370,7 +385,7 @@
     <div id="d-receipt"></div>
     <div class="balline">
       <div class="l">Your balance in <span class="f-grp"></span></div>
-      <div class="r"><span id="d-bal">0</span> tokens</div>
+      <div class="r" id="d-bal">0</div>
     </div>
     <div class="foot" style="padding-top:26px"><button class="btn" id="d-done">Done</button></div>
   </section>
@@ -394,7 +409,7 @@
 (function(){
   'use strict';
   var LS = 'union-paytest-v3';
-  var state = { name:'', ini:'', group:'The Velvet Tavern', bal:50, people:[] };
+  var state = { name:'', ini:'', group:'The Velvet Tavern', bal:50, people:[], sym:'\u269c', cur:'tokens' };
   var mode = 'pay', amtStr = '', pending = null, connectOpen = false, panelOpen = false, closingTimer = null;
   var stream = null, scanning = false, rafId = null, lastSeen = 0;
 
@@ -422,10 +437,13 @@
   /* ---------- money ---------- */
   function num(){ var n=parseFloat(amtStr); return isNaN(n)?0:Math.round(n*100)/100; }
   function fmt(n){ n=Math.round(n*100)/100; return (n%1===0)?String(n):n.toFixed(2); }
+  function money(n,c){ c=c||state; return '<span class="sym">'+esc(c.sym||'')+'</span>'+fmt(n); }
+  function moneyTxt(n,c){ c=c||state; return (c.sym||'')+fmt(n); }
   function fmtTyping(s){
-    if(!s) return '0';
-    var i=s.indexOf('.'); if(i<0) return esc(s);
-    return esc(s.slice(0,i))+'<span class="dec">'+esc(s.slice(i))+'</span>';
+    var sy='<span class="sym">'+esc(state.sym||'')+'</span>';
+    if(!s) return sy+'0';
+    var i=s.indexOf('.'); if(i<0) return sy+esc(s);
+    return sy+esc(s.slice(0,i))+'<span class="dec">'+esc(s.slice(i))+'</span>';
   }
 
   function show(id){
@@ -438,13 +456,13 @@
     clearTimeout(t._t); t._t=setTimeout(function(){ t.classList.remove('on'); },2200); }
 
   /* ---------- payload ---------- */
-  function encode(o){ var s=['U1',o.dir,fmt(o.amt),o.item||'',o.name||'',o.ini||'',o.group||''].join('\u001f');
+  function encode(o){ var s=['U2',o.dir,fmt(o.amt),o.item||'',o.name||'',o.ini||'',o.group||'',o.sym||'',o.cur||''].join('\u001f');
     return 'UNION:'+btoa(unescape(encodeURIComponent(s))); }
   function decode(t){
     if(!t||t.indexOf('UNION:')!==0) return null;
     try{ var s=decodeURIComponent(escape(atob(t.slice(6)))); var p=s.split('\u001f');
-      if(p[0]!=='U1') return null; var n=Math.round(parseFloat(p[2])*100)/100; if(!(n>0)) return null;
-      return {dir:p[1],amt:n,item:p[3],name:p[4]||'Someone',ini:p[5]||'??',group:p[6]||''};
+      if(p[0]!=='U1'&&p[0]!=='U2') return null; var n=Math.round(parseFloat(p[2])*100)/100; if(!(n>0)) return null;
+      return {dir:p[1],amt:n,item:p[3],name:p[4]||'Someone',ini:p[5]||'??',group:p[6]||'',sym:p[7]||state.sym,cur:p[8]||state.cur};
     }catch(e){ return null; }
   }
 
@@ -461,9 +479,10 @@
       + '<div class="avatar">'+esc(o.ini)+'</div>'
       + '<div class="nm">'+esc(o.who)+'</div>'
       + '<div class="rule"></div>'
-      + '<div class="li"><span>'+esc(o.item||'No description')+'</span><b>'+fmt(o.amt)+'</b></div>'
+      + '<div class="li"><span>'+esc(o.item||'No description')+'</span><b>'+money(o.amt,o)+'</b></div>'
       + '<div class="rule"></div>'
-      + '<div class="tot"><span class="l">TOTAL</span><span class="r">'+fmt(o.amt)+' tokens</span></div>'
+      + '<div class="tot"><span class="l">TOTAL</span><span class="r">'+money(o.amt,o)+'</span></div>'
+      + '<div class="totcur">'+esc(o.cur||state.cur)+'</div>'
       + (o.paid ? '<div class="dash"></div><div class="paid">PAID</div>' : '')
       + '</div>';
   }
@@ -557,14 +576,14 @@
     var pill=$('#c-title');
     pill.className='modepill '+(m==='pay'?'pay':'req');
     pill.innerHTML = icon(m==='pay'?'i-pay':'i-req')+'<span>'+(m==='pay'?'Paying':'Requesting')+'</span>';
-    $('#c-grp').textContent=state.group;
+    $('#c-grp').textContent=state.group; $('#c-cur').textContent=state.cur;
     drawAmt(); closePanel(true); show('s-compose'); startCam();
   }
   function drawAmt(){
     var e=$('#c-amt'), n=num();
     e.innerHTML=fmtTyping(amtStr); e.classList.toggle('zero', n===0);
     var b=$('#c-go'); b.disabled=!(n>0);
-    b.textContent = n>0 ? (mode==='pay'?'Pay '+fmt(n)+' tokens':'Request '+fmt(n)+' tokens') : (mode==='pay'?'Pay':'Request');
+    b.textContent = n>0 ? (mode==='pay'?'Pay '+moneyTxt(n):'Request '+moneyTxt(n)) : (mode==='pay'?'Pay':'Request');
   }
   function key(k){
     if(k==='x'){ amtStr=amtStr.slice(0,-1); }
@@ -575,18 +594,19 @@
       if(amtStr==='0') amtStr=k; else amtStr+=k; }
     drawAmt();
   }
-  function qrInto(el,text,px){
+  function qrInto(el,text,px,badge){
     el.innerHTML='';
-    try{ new QRCode(el,{text:text,width:px,height:px,colorDark:'#1A2433',colorLight:'#ffffff',correctLevel:(window.QRCode&&QRCode.CorrectLevel)?QRCode.CorrectLevel.M:1}); }
+    try{ new QRCode(el,{text:text,width:px,height:px,colorDark:'#1A2433',colorLight:'#ffffff',correctLevel:(window.QRCode&&QRCode.CorrectLevel)?(badge?QRCode.CorrectLevel.H:QRCode.CorrectLevel.M):1});
+      if(badge){ var b=document.createElement('div'); b.className='qrbadge'; b.textContent=badge; el.appendChild(b); } }
     catch(e){ el.innerHTML='<div style="font-size:10px;word-break:break-all">'+esc(text)+'</div>'; }
   }
   function showMyCode(){
     var n=num();
-    var p={dir:mode,amt:n,item:$('#c-item').value.trim(),name:state.name,ini:state.ini,group:state.group};
+    var p={dir:mode,amt:n,item:$('#c-item').value.trim(),name:state.name,ini:state.ini,group:state.group,sym:state.sym,cur:state.cur};
     var txt=encode(p);
-    qrInto($('#qr'),txt,200); $('#k-raw').value=txt;
+    qrInto($('#qr'),txt,200,state.sym); $('#k-raw').value=txt;
     $('#k-dir').textContent = mode==='pay'?'PAYING':'REQUESTING';
-    $('#k-amt').textContent=fmt(n); $('#k-item').textContent=p.item||'';
+    $('#k-big').innerHTML=money(n); $('#k-cur').textContent=state.cur; $('#k-item').textContent=p.item||'';
     $('#k-ini').textContent=state.ini; $('#k-name').textContent=state.name; $('#k-grp').textContent=state.group;
     show('s-code');
   }
@@ -594,17 +614,18 @@
     if(p.dir==='request'){
       pending=p;
       $('#f-receipt').innerHTML=receiptHTML({who:p.name,ini:p.ini,group:p.group||state.group,item:p.item,amt:p.amt,paid:false,when:new Date()});
-      $('#f-bal').textContent=fmt(state.bal);
+      $('#f-bal').innerHTML=money(state.bal)+' <span class="muted" style="font-weight:500">'+esc(state.cur)+'</span>';
       $$('.f-grp').forEach(function(e){ e.textContent=p.group||state.group; });
-      $('#f-pay').textContent='Pay '+fmt(p.amt)+' tokens';
+      $('#f-pay').textContent='Pay '+moneyTxt(p.amt,p);
       $('#f-pay').disabled = p.amt>state.bal;
-      if(p.amt>state.bal) toast('Not enough tokens for that');
+      if(p.amt>state.bal) toast('Not enough '+state.cur+' for that');
       hap('pick'); show('s-confirm');
     } else {
-      settle('in',p.amt,p.name,p.ini,p.item,p.group);
+      settle('in',p.amt,p.name,p.ini,p.item,p.group,p);
     }
   }
-  function settle(dir,n,who,ini,item,group){
+  function settle(dir,n,who,ini,item,group,c){
+    c=c||state;
     state.bal=Math.round((dir==='out'?state.bal-n:state.bal+n)*100)/100;
     if(who && who!=='Someone' && state.people.indexOf(who)===-1) state.people.push(who);
     save();
@@ -613,9 +634,9 @@
     $('#d-title').textContent = isIn?'':'You paid';
     $('#d-receipt').innerHTML = isIn
       ? '<div class="conf"><div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>'
-        + '<div class="t1">'+esc(who)+' paid you</div><div class="t2">'+fmt(n)+' tokens</div><div class="t3">'+esc(item||'')+'</div></div>'
-      : receiptHTML({who:who,ini:ini,group:group||state.group,item:item,amt:n,paid:true,when:new Date()});
-    $('#d-bal').textContent=fmt(state.bal);
+        + '<div class="t1">'+esc(who)+' paid you</div><div class="t2">'+money(n,c)+'</div><div class="curname light">'+esc(c.cur||state.cur)+'</div><div class="t3">'+esc(item||'')+'</div></div>'
+      : receiptHTML({who:who,ini:ini,group:group||state.group,item:item,amt:n,paid:true,when:new Date(),sym:c.sym,cur:c.cur});
+    $('#d-bal').innerHTML=money(state.bal)+' <span style="font-weight:500;opacity:.7">'+esc(state.cur)+'</span>';
     $$('.f-grp').forEach(function(e){ e.textContent=group||state.group; });
     hap(isIn?'got':'paid');
     show('s-done');
@@ -625,6 +646,7 @@
     $('#me-av').textContent=state.ini;
     var names=state.people.slice(); while(names.length<1) names.push('Philip Rosedale');
     $('#h-count').textContent=names.length;
+    $('#h-hint').innerHTML='Meet someone in person and scan their code to add them.<div style="margin-top:10px;font-size:13px">This group pays in <b style="color:var(--ink)">'+esc(state.sym)+' '+esc(state.cur)+'</b></div>';
     $('#h-people').innerHTML=names.map(function(n){
       return '<div class="row"><div class="avatar">'+esc(initials(n))+'</div><div class="m"><b>'+esc(n)+'</b><span>'+esc(state.group)+'</span></div><div class="chev">›</div></div>';
     }).join('');
@@ -636,6 +658,7 @@
     var n=$('#in-name').value.trim();
     if(!n){ toast('Pop your name in first'); $('#in-name').focus(); return; }
     state.name=n; state.ini=initials(n); state.group=$('#in-group').value.trim()||'The Velvet Tavern';
+    state.sym=($('#in-sym').value||'').trim().slice(0,2)||'\u269c'; state.cur=$('#in-cur').value.trim()||'tokens';
     save(); renderHome(); show('s-home');
   });
   $('#me-av').addEventListener('click',function(){
@@ -660,7 +683,7 @@
     settle(mode==='pay'?'out':'in', num(), 'Someone', '?', item, state.group);
   });
   $('#f-no').addEventListener('click',function(){ pending=null; renderHome(); show('s-home'); });
-  $('#f-pay').addEventListener('click',function(){ if(!pending) return; var p=pending; pending=null; settle('out',p.amt,p.name,p.ini,p.item,p.group); });
+  $('#f-pay').addEventListener('click',function(){ if(!pending) return; var p=pending; pending=null; settle('out',p.amt,p.name,p.ini,p.item,p.group,p); });
   $('#d-done').addEventListener('click',function(){ renderHome(); show('s-home'); });
 
   document.addEventListener('visibilitychange',function(){
