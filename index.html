@@ -312,8 +312,6 @@
       </div>
       <div id="h-people"></div>
       <div class="hint" id="h-hint">Meet someone in person and scan their code to add them.</div>
-      <div class="seclead" style="margin-top:22px"><span class="sect">Your groups</span><span class="sect" id="h-gcount">1</span></div>
-      <div id="h-groups"></div>
     </div>
     <nav class="nav">
       <div class="ni">
@@ -690,10 +688,6 @@
     $('#me-av').textContent=state.ini;
     var names=state.people.slice(); while(names.length<1) names.push('Philip Rosedale');
     $('#h-count').textContent=names.length;
-    $('#h-gcount').textContent=state.groups.length;
-    $('#h-groups').innerHTML=state.groups.map(function(g){
-      return '<div class="row"><div class="avatar" style="font-size:18px;background:var(--page)">'+esc(g.sym)+'</div><div class="m"><b>'+esc(g.name)+'</b><span>'+esc(g.cur)+'</span></div><div style="font-weight:700">'+money(g.bal,g)+'</div></div>';
-    }).join('');
     $('#h-people').innerHTML=names.map(function(n){
       return '<div class="row"><div class="avatar">'+esc(initials(n))+'</div><div class="m"><b>'+esc(n)+'</b><span>'+esc(G().name)+'</span></div><div class="chev">›</div></div>';
     }).join('');
