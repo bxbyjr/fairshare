@@ -42,6 +42,7 @@
   .screen.on{display:block}
   #s-compose.on,#s-code.on,#s-confirm.on,#s-done.on{display:flex;flex-direction:column;height:100svh;height:100dvh;overflow:hidden}
   #s-compose .topbar,#s-code .topbar,#s-confirm .topbar,#s-done .topbar{flex:none}
+  #s-compose.on{overflow-y:auto}
   #s-confirm .foot,#s-done .foot,#s-code .harness{margin-top:auto}
   .pad{padding:0 20px}
   .muted{color:var(--ink-2)}
@@ -146,7 +147,7 @@
   .modepill.pay{background:var(--pay-bg);color:var(--pay)}
   .modepill.req{background:var(--ok-bg);color:var(--ok)}
   .modepill svg{width:14px;height:14px}
-  .camwrap{position:relative;margin:4px 20px 0;border-radius:var(--r-lg);overflow:hidden;background:var(--cam);height:138px;flex:none}
+  .camwrap{position:relative;margin:4px 20px 0;border-radius:var(--r-lg);overflow:hidden;background:var(--cam);height:clamp(92px,16dvh,138px);flex:none}
   .camwrap video{width:100%;height:100%;object-fit:cover;display:block}
   .camwrap .bk{position:absolute;inset:0;pointer-events:none}
   .camwrap .bk i{position:absolute;width:22px;height:22px;border:2px solid rgba(255,255,255,.72)}
@@ -156,15 +157,15 @@
   .camwrap .bk i:nth-child(4){bottom:14px;right:14px;border-left:0;border-top:0;border-radius:0 0 4px 0}
   .camwrap .cl{position:absolute;left:0;right:0;bottom:12px;text-align:center;color:rgba(255,255,255,.66);font-size:12px;letter-spacing:.04em}
   .camwrap.dead video{display:none}
-  .or{display:flex;align-items:center;gap:12px;margin:10px 20px;flex:none}
+  .or{display:flex;align-items:center;gap:12px;margin:8px 20px;flex:none}
   .or:before,.or:after{content:'';flex:1;height:1px;background:var(--border)}
   .or span{font-size:11px;letter-spacing:.16em;color:var(--ink-2);font-weight:600}
   .amtbox{text-align:center;padding:0 20px;flex:none}
-  .amtbox .v{font-size:50px;font-weight:700;letter-spacing:-.03em;line-height:1.08;font-variant-numeric:tabular-nums}
+  .amtbox .v{font-size:clamp(38px,6.2dvh,50px);font-weight:700;letter-spacing:-.03em;line-height:1.08;font-variant-numeric:tabular-nums}
   .amtbox .v.zero{color:#B6C2CE}
   .amtbox .v .dec{font-size:34px;font-weight:600;color:var(--ink-2)}
   .chip{display:inline-flex;align-items:center;gap:6px;margin-top:6px;background:var(--brand-sub);color:var(--brand);border-radius:999px;padding:6px 14px;font-size:14px;font-weight:600}
-  .keys{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:8px;padding:10px 20px 0;flex:1;min-height:0}
+  .keys{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:8px;padding:10px 20px 0;flex:1;min-height:184px}
   .keys button{background:#fff;border:1px solid var(--border);border-radius:14px;padding:0;min-height:40px;font-size:25px;font-weight:500;text-align:center;transition:transform .08s,background .08s}
   .keys button:active{background:#EDF1F5;transform:scale(.96)}
   .keys button.dim{color:var(--ink-2)}
@@ -296,7 +297,7 @@
     <div class="topbar">
       <button class="linkbtn" id="c-cancel" style="width:62px">Cancel</button>
       <span class="modepill pay" id="c-title" role="status"><svg><use href="#i-pay"/></svg><span>Paying</span></span>
-      <div style="width:62px"></div>
+      <button class="linkbtn" id="c-paste" style="width:62px;text-align:right;font-size:14px" title="Enter a code by hand">Paste</button>
     </div>
     <div class="camwrap" id="camwrap">
       <video id="cam" playsinline muted autoplay></video>
@@ -317,9 +318,8 @@
       <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
       <button data-k="." class="dim" aria-label="Decimal point">.</button><button data-k="0">0</button><button data-k="x" class="dim" aria-label="Delete">&#9003;</button>
     </div>
-    <div class="foot" style="padding-top:10px;flex:none">
+    <div class="foot" style="padding:10px 20px calc(12px + var(--sb));flex:none">
       <button class="btn" id="c-go" disabled>Pay</button>
-      <button class="btn ghost" id="c-paste" style="margin-top:0;padding:8px 20px;font-size:12px">Enter a code by hand</button>
     </div>
   </section>
 
