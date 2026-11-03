@@ -86,6 +86,7 @@
     width:68px;height:68px;border-radius:50%;background:var(--brand);display:grid;place-items:center;
     z-index:60;box-shadow:0 8px 20px rgba(45,95,125,.32);transition:transform .14s var(--out)}
   #ubtn:active{transform:translateX(-50%) scale(.92)}
+  #ubtn[hidden]{display:none}
   #ubtn svg{width:27px;height:27px;grid-area:1/1;transition:transform .26s var(--out),opacity .18s}
   #ubtn .i-x{opacity:0;transform:rotate(-45deg) scale(.6)}
   #ubtn[aria-expanded="true"] .i-qr{opacity:0;transform:rotate(45deg) scale(.6)}
