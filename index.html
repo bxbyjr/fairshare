@@ -437,7 +437,7 @@
   'use strict';
   var LS = 'union-paytest-v4';
   var state = { name:'', ini:'', people:[], gi:0, groups:[{name:'The Velvet Tavern',sym:'\u269c',cur:'tokens',bal:50}] };
-  function G(){ return G().names[state.gi] || G().names[0]; }
+  function G(){ return state.groups[state.gi] || state.groups[0]; }
   var mode = 'pay', amtStr = '', pending = null, connectOpen = false, panelOpen = false, closingTimer = null;
   var stream = null, scanning = false, rafId = null, lastSeen = 0;
 
