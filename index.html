@@ -36,12 +36,15 @@
   #app{max-width:480px;margin:0 auto;position:relative;min-height:100svh}
   .screen{display:none;min-height:100svh}
   .screen.on{display:block}
+  #s-compose.on,#s-code.on,#s-confirm.on,#s-done.on{display:flex;flex-direction:column;height:100svh;height:100dvh;overflow:hidden}
+  #s-compose .topbar,#s-code .topbar,#s-confirm .topbar,#s-done .topbar{flex:none}
+  #s-confirm .foot,#s-done .foot,#s-code .harness{margin-top:auto}
   .pad{padding:0 20px}
   .muted{color:var(--ink-2)}
   .sect{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);font-weight:600}
 
-  .btn{display:block;width:100%;padding:17px 20px;border-radius:var(--r-md);background:var(--brand);
-    color:#fff;font-size:17px;font-weight:600;text-align:center;transition:transform .12s}
+  .btn{display:block;width:100%;padding:18px 20px;border-radius:14px;background:var(--brand);
+    color:#fff;font-size:18px;font-weight:600;text-align:center;transition:transform .12s}
   .btn:active{transform:scale(.985)}
   .btn[disabled]{opacity:.38}
   .btn.ghost{background:none;color:var(--ink-2);font-weight:500}
@@ -79,11 +82,11 @@
   .nav .ni svg{width:22px;height:22px}
 
   /* the Union button: one control that morphs into the X */
-  #ubtn{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav) - 34px + var(--sb));
-    width:62px;height:62px;border-radius:50%;background:var(--brand);display:grid;place-items:center;
+  #ubtn{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--nav) - 37px + var(--sb));
+    width:68px;height:68px;border-radius:50%;background:var(--brand);display:grid;place-items:center;
     z-index:60;box-shadow:0 8px 20px rgba(45,95,125,.32);transition:transform .14s var(--out)}
   #ubtn:active{transform:translateX(-50%) scale(.92)}
-  #ubtn svg{width:25px;height:25px;grid-area:1/1;transition:transform .26s var(--out),opacity .18s}
+  #ubtn svg{width:27px;height:27px;grid-area:1/1;transition:transform .26s var(--out),opacity .18s}
   #ubtn .i-x{opacity:0;transform:rotate(-45deg) scale(.6)}
   #ubtn[aria-expanded="true"] .i-qr{opacity:0;transform:rotate(45deg) scale(.6)}
   #ubtn[aria-expanded="true"] .i-x{opacity:1;transform:rotate(0) scale(1)}
@@ -103,9 +106,9 @@
   @keyframes cardOut{from{transform:none;opacity:1}to{transform:translateY(10px) scale(.98);opacity:0}}
 
   .fan{position:absolute;left:50%;bottom:calc(var(--nav) - 3px + var(--sb));width:0;height:0}
-  .fan .fi{position:absolute;left:0;top:0;width:76px;height:76px;margin:-38px 0 0 -38px;
+  .fan .fi{position:absolute;left:0;top:0;width:88px;height:88px;margin:-44px 0 0 -44px;
     animation:fanIn .38s var(--spring) both;animation-delay:var(--d)}
-  .fan .fi.small{width:58px;height:58px;margin:-29px 0 0 -29px}
+  .fan .fi.small{width:68px;height:68px;margin:-34px 0 0 -34px}
   #panel.closing .fan .fi{animation:fanOut .16s var(--in) both;animation-delay:0ms}
   .fan .bub{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:#fff;
     box-shadow:0 10px 24px rgba(10,20,30,.28);transition:transform .12s var(--out)}
@@ -113,7 +116,7 @@
   .fan .bub svg{width:42%;height:42%}
   .fan .bub.pay{color:var(--pay)} .fan .bub.req{color:var(--ok)} .fan .bub.con{color:var(--brand)}
   .fan .lab{position:absolute;top:100%;left:50%;transform:translateX(-50%);margin-top:7px;white-space:nowrap;
-    font-size:13px;font-weight:600;color:#fff;letter-spacing:.01em;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+    font-size:14px;font-weight:600;color:#fff;letter-spacing:.01em;text-shadow:0 1px 2px rgba(0,0,0,.25)}
 
   .ic{border-radius:50%;display:grid;place-items:center;flex:none}
   .ic svg{width:48%;height:48%}
@@ -138,7 +141,7 @@
   .modepill.pay{background:var(--pay-bg);color:var(--pay)}
   .modepill.req{background:var(--ok-bg);color:var(--ok)}
   .modepill svg{width:14px;height:14px}
-  .camwrap{position:relative;margin:6px 20px 0;border-radius:var(--r-lg);overflow:hidden;background:var(--cam);height:148px}
+  .camwrap{position:relative;margin:4px 20px 0;border-radius:var(--r-lg);overflow:hidden;background:var(--cam);height:138px;flex:none}
   .camwrap video{width:100%;height:100%;object-fit:cover;display:block}
   .camwrap .bk{position:absolute;inset:0;pointer-events:none}
   .camwrap .bk i{position:absolute;width:22px;height:22px;border:2px solid rgba(255,255,255,.72)}
@@ -148,34 +151,34 @@
   .camwrap .bk i:nth-child(4){bottom:14px;right:14px;border-left:0;border-top:0;border-radius:0 0 4px 0}
   .camwrap .cl{position:absolute;left:0;right:0;bottom:12px;text-align:center;color:rgba(255,255,255,.66);font-size:12px;letter-spacing:.04em}
   .camwrap.dead video{display:none}
-  .or{display:flex;align-items:center;gap:12px;margin:14px 20px}
+  .or{display:flex;align-items:center;gap:12px;margin:10px 20px;flex:none}
   .or:before,.or:after{content:'';flex:1;height:1px;background:var(--border)}
   .or span{font-size:11px;letter-spacing:.16em;color:var(--ink-2);font-weight:600}
-  .amtbox{text-align:center;padding:0 20px}
-  .amtbox .v{font-size:52px;font-weight:700;letter-spacing:-.03em;line-height:1.08;font-variant-numeric:tabular-nums}
+  .amtbox{text-align:center;padding:0 20px;flex:none}
+  .amtbox .v{font-size:50px;font-weight:700;letter-spacing:-.03em;line-height:1.08;font-variant-numeric:tabular-nums}
   .amtbox .v.zero{color:#B6C2CE}
   .amtbox .v .dec{font-size:34px;font-weight:600;color:var(--ink-2)}
-  .chip{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:var(--brand-sub);color:var(--brand);border-radius:999px;padding:6px 14px;font-size:14px;font-weight:600}
-  .keys{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 20px 0}
-  .keys button{background:#fff;border:1px solid var(--border);border-radius:var(--r-md);padding:12px 0;font-size:21px;font-weight:500;text-align:center;transition:transform .08s,background .08s}
+  .chip{display:inline-flex;align-items:center;gap:6px;margin-top:6px;background:var(--brand-sub);color:var(--brand);border-radius:999px;padding:6px 14px;font-size:14px;font-weight:600}
+  .keys{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:8px;padding:10px 20px 0;flex:1;min-height:0}
+  .keys button{background:#fff;border:1px solid var(--border);border-radius:14px;padding:0;min-height:46px;font-size:25px;font-weight:500;text-align:center;transition:transform .08s,background .08s}
   .keys button:active{background:#EDF1F5;transform:scale(.96)}
   .keys button.dim{color:var(--ink-2)}
 
   /* ---------------- code ---------------- */
   #s-code{background:var(--brand);color:#fff}
   #s-code .linkbtn{color:rgba(255,255,255,.82)}
-  .qrcard{background:#fff;border-radius:var(--r-lg);padding:18px;width:244px;margin:6px auto 0;animation:cardIn .3s var(--out) both}
-  .qrcard #qr{width:208px;height:208px;margin:0 auto}
-  .qrcard #qr img,.qrcard #qr canvas{width:208px !important;height:208px !important;display:block}
-  .dirlab{text-align:center;margin-top:20px;font-size:11px;letter-spacing:.2em;color:rgba(255,255,255,.72);font-weight:700}
+  .qrcard{background:#fff;border-radius:var(--r-lg);padding:16px;width:232px;margin:2px auto 0;flex:none;animation:cardIn .3s var(--out) both}
+  .qrcard #qr{width:200px;height:200px;margin:0 auto}
+  .qrcard #qr img,.qrcard #qr canvas{width:200px !important;height:200px !important;display:block}
+  .dirlab{text-align:center;margin-top:16px;font-size:11px;letter-spacing:.2em;color:rgba(255,255,255,.72);font-weight:700}
   #s-code .big{text-align:center;font-size:40px;font-weight:700;letter-spacing:-.02em;margin-top:3px}
   #s-code .item{text-align:center;font-size:16px;color:rgba(255,255,255,.78);margin-top:1px;min-height:22px}
-  #s-code .hr{height:1px;background:rgba(255,255,255,.2);margin:20px 64px}
+  #s-code .hr{height:1px;background:rgba(255,255,255,.2);margin:14px 64px}
   #s-code .who{display:flex;gap:10px;align-items:center;justify-content:center;font-size:15px}
   #s-code .who .avatar{background:rgba(255,255,255,.2);color:#fff;width:28px;height:28px}
   #s-code .grp{text-align:center;color:rgba(255,255,255,.66);font-size:14px;margin-top:6px}
-  #s-code .wait{text-align:center;color:rgba(255,255,255,.72);font-size:14px;margin-top:24px}
-  .harness{text-align:center;padding:18px 20px calc(22px + var(--sb))}
+  #s-code .wait{text-align:center;color:rgba(255,255,255,.72);font-size:14px;margin-top:16px}
+  .harness{text-align:center;padding:12px 20px calc(18px + var(--sb))}
   .harness button{color:rgba(255,255,255,.6);font-size:13px;text-decoration:underline;text-underline-offset:3px;background:none}
   .harness details{margin-top:12px}
   .harness summary{color:rgba(255,255,255,.45);font-size:12px;cursor:pointer;list-style:none}
@@ -183,7 +186,7 @@
   .harness textarea{width:100%;margin-top:9px;border-radius:var(--r-sm);border:0;padding:9px;font-size:11px;font-family:ui-monospace,Menlo,monospace;height:58px;resize:none}
 
   /* ---------------- receipt ---------------- */
-  .receipt{position:relative;background:#fff;width:286px;margin:16px auto 0;padding:24px 22px 28px;border-radius:4px;
+  .receipt{position:relative;background:#fff;width:286px;margin:12px auto 0;flex:none;padding:24px 22px 28px;border-radius:4px;
     box-shadow:0 8px 24px rgba(26,36,51,.09);animation:cardIn .3s var(--out) both}
   .receipt:after{content:'';position:absolute;left:0;right:0;bottom:-7px;height:14px;
     background:radial-gradient(circle at 7px 7px, var(--page) 7px, transparent 7.5px) repeat-x;background-size:14px 14px}
@@ -199,7 +202,7 @@
   .receipt .tot .r{font-size:19px;font-weight:700}
   .receipt .dash{border-top:1px dashed var(--border);margin-top:16px}
   .receipt .paid{text-align:center;margin-top:10px;font-size:10px;letter-spacing:.34em;color:var(--ok);font-weight:600}
-  .balline{text-align:center;margin-top:30px}
+  .balline{text-align:center;margin-top:22px;flex:none}
   .balline .l{font-size:14px;color:var(--ink-2)}
   .balline .r{font-size:18px;font-weight:700;margin-top:3px}
   .foot{padding:14px 20px calc(16px + var(--sb))}
@@ -300,7 +303,7 @@
       <div class="v zero" id="c-amt" aria-live="polite">0</div>
       <div class="chip" id="c-grp">The Velvet Tavern</div>
     </div>
-    <div class="pad" style="margin-top:14px">
+    <div class="pad" style="margin-top:10px;flex:none">
       <input class="field" id="c-item" placeholder="What is it for?" maxlength="40">
     </div>
     <div class="keys" id="keys" role="group" aria-label="Amount keypad">
@@ -309,7 +312,7 @@
       <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
       <button data-k="." class="dim" aria-label="Decimal point">.</button><button data-k="0">0</button><button data-k="x" class="dim" aria-label="Delete">&#9003;</button>
     </div>
-    <div class="foot" style="padding-top:16px">
+    <div class="foot" style="padding-top:10px;flex:none">
       <button class="btn" id="c-go" disabled>Pay</button>
       <button class="btn ghost" id="c-paste" style="margin-top:2px;font-size:13px">Enter a code by hand</button>
     </div>
@@ -511,9 +514,9 @@
     } else {
       // Pay and Request first (0 / 35ms), Connect last (90ms). Labels on all three.
       sheet.innerHTML = '<div class="fan">'
-        + '<div class="fi" style="--tx:-82px;--ty:-104px;--d:0ms"><button class="bub pay" data-go="pay" role="menuitem" aria-label="Pay">'+icon('i-pay')+'</button><span class="lab" aria-hidden="true">Pay</span></div>'
-        + '<div class="fi" style="--tx:82px;--ty:-104px;--d:35ms"><button class="bub req" data-go="request" role="menuitem" aria-label="Request">'+icon('i-req')+'</button><span class="lab" aria-hidden="true">Request</span></div>'
-        + '<div class="fi small" style="--tx:0px;--ty:-186px;--d:90ms"><button class="bub con" data-go="connect" role="menuitem" aria-label="Connect">'+icon('i-con')+'</button><span class="lab" aria-hidden="true">Connect</span></div>'
+        + '<div class="fi" style="--tx:-96px;--ty:-116px;--d:0ms"><button class="bub pay" data-go="pay" role="menuitem" aria-label="Pay">'+icon('i-pay')+'</button><span class="lab" aria-hidden="true">Pay</span></div>'
+        + '<div class="fi" style="--tx:96px;--ty:-116px;--d:35ms"><button class="bub req" data-go="request" role="menuitem" aria-label="Request">'+icon('i-req')+'</button><span class="lab" aria-hidden="true">Request</span></div>'
+        + '<div class="fi small" style="--tx:0px;--ty:-212px;--d:90ms"><button class="bub con" data-go="connect" role="menuitem" aria-label="Connect">'+icon('i-con')+'</button><span class="lab" aria-hidden="true">Connect</span></div>'
         + '</div>';
     }
     $$('#p-sheet [data-go]').forEach(function(b){
@@ -576,7 +579,7 @@
     var n=num();
     var p={dir:mode,amt:n,item:$('#c-item').value.trim(),name:state.name,ini:state.ini,group:state.group};
     var txt=encode(p);
-    qrInto($('#qr'),txt,208); $('#k-raw').value=txt;
+    qrInto($('#qr'),txt,200); $('#k-raw').value=txt;
     $('#k-dir').textContent = mode==='pay'?'PAYING':'REQUESTING';
     $('#k-amt').textContent=fmt(n); $('#k-item').textContent=p.item||'';
     $('#k-ini').textContent=state.ini; $('#k-name').textContent=state.name; $('#k-grp').textContent=state.group;
