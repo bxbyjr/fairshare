@@ -437,8 +437,8 @@
   /* ---------- money ---------- */
   function num(){ var n=parseFloat(amtStr); return isNaN(n)?0:Math.round(n*100)/100; }
   function fmt(n){ n=Math.round(n*100)/100; return (n%1===0)?String(n):n.toFixed(2); }
-  function money(n,c){ c=c||state; return '<span class="sym">'+esc(c.sym||'')+'</span>'+fmt(n); }
-  function moneyTxt(n,c){ c=c||state; return (c.sym||'')+fmt(n); }
+  function money(n,c){ var sy=(c&&c.sym)||state.sym||''; return '<span class="sym">'+esc(sy)+'</span>'+fmt(n); }
+  function moneyTxt(n,c){ return ((c&&c.sym)||state.sym||'')+fmt(n); }
   function fmtTyping(s){
     var sy='<span class="sym">'+esc(state.sym||'')+'</span>';
     if(!s) return sy+'0';
@@ -613,7 +613,7 @@
   function onScanned(p){
     if(p.dir==='request'){
       pending=p;
-      $('#f-receipt').innerHTML=receiptHTML({who:p.name,ini:p.ini,group:p.group||state.group,item:p.item,amt:p.amt,paid:false,when:new Date()});
+      $('#f-receipt').innerHTML=receiptHTML({who:p.name,ini:p.ini,group:p.group||state.group,item:p.item,amt:p.amt,paid:false,when:new Date(),sym:p.sym,cur:p.cur});
       $('#f-bal').innerHTML=money(state.bal)+' <span class="muted" style="font-weight:500">'+esc(state.cur)+'</span>';
       $$('.f-grp').forEach(function(e){ e.textContent=p.group||state.group; });
       $('#f-pay').textContent='Pay '+moneyTxt(p.amt,p);
