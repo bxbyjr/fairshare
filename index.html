@@ -170,7 +170,27 @@
   .qrcard #qr{position:relative}
   .qrbadge{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:#fff;
     display:grid;place-items:center;font-size:22px;font-weight:700;color:var(--brand);box-shadow:0 0 0 3px #fff}
-  .chip{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:var(--brand-sub);color:var(--brand);border-radius:999px;padding:6px 14px;font-size:14px;font-weight:600}
+  .chip{display:inline-flex;align-items:center;gap:6px;margin-top:8px;background:var(--brand-sub);color:var(--brand);border-radius:999px;padding:7px 14px;font-size:14px;font-weight:600;transition:transform .12s}
+  .chip svg{width:14px;height:14px;margin-left:2px}
+  .chip.many:active{transform:scale(.96)}
+  /* group sheet */
+  #gsheet{position:fixed;inset:0;z-index:80;display:none}
+  #gsheet.on{display:block}
+  #gsheet .scrim{position:absolute;inset:0;background:rgba(16,25,36,.4)}
+  .gpanel{position:absolute;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:#fff;border-radius:20px 20px 0 0;
+    padding:14px 14px calc(18px + var(--sb));animation:sheetUp .26s var(--out) both;box-shadow:0 -10px 30px rgba(10,20,30,.12)}
+  @keyframes sheetUp{from{transform:translateY(28px);opacity:0}to{transform:none;opacity:1}}
+  .gpanel .gt{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);font-weight:600;padding:6px 10px 10px}
+  .grow{display:flex;align-items:center;gap:14px;padding:12px 10px;border-radius:14px;width:100%;transition:background .12s}
+  .grow:active{background:var(--page)}
+  .grow.on{background:var(--brand-sub)}
+  .grow .gs{width:44px;height:44px;border-radius:50%;background:var(--page);display:grid;place-items:center;font-size:20px;flex:none}
+  .grow.on .gs{background:#fff}
+  .grow .gm{flex:1;min-width:0}
+  .grow .gm b{display:block;font-size:16px;font-weight:600}
+  .grow .gm span{font-size:13px;color:var(--ink-2)}
+  .grow .gb{font-weight:700;font-size:15px;white-space:nowrap}
+  .grow .gb small{font-weight:500;color:var(--ink-2);font-size:12px;margin-left:3px}
   .keys{display:grid;grid-template-columns:repeat(3,1fr);grid-auto-rows:1fr;gap:8px;padding:10px 20px 0;flex:1;min-height:194px}
   .keys button{background:#fff;border:1px solid var(--border);border-radius:14px;padding:0;min-height:40px;font-size:25px;font-weight:500;text-align:center;transition:transform .08s,background .08s}
   .keys button:active{background:#EDF1F5;transform:scale(.96)}
@@ -292,6 +312,8 @@
       </div>
       <div id="h-people"></div>
       <div class="hint" id="h-hint">Meet someone in person and scan their code to add them.</div>
+      <div class="seclead" style="margin-top:22px"><span class="sect">Your groups</span><span class="sect" id="h-gcount">1</span></div>
+      <div id="h-groups"></div>
     </div>
     <nav class="nav">
       <div class="ni">
@@ -321,7 +343,7 @@
     <div class="amtbox">
       <div class="v zero" id="c-amt" aria-live="polite">0</div>
       <div class="curname" id="c-cur">tokens</div>
-      <div class="chip" id="c-grp">The Velvet Tavern</div>
+      <button class="chip" id="c-grp" aria-haspopup="dialog"><span id="c-grpname">The Velvet Tavern</span></button>
     </div>
     <div class="pad" style="margin-top:10px;flex:none">
       <input class="field" id="c-item" placeholder="What is it for?" maxlength="40">
@@ -400,6 +422,11 @@
     <svg class="i-x"><use href="#i-x"/></svg>
   </button>
 
+  <div id="gsheet" aria-hidden="true" role="dialog" aria-label="Which group">
+    <div class="scrim" id="g-scrim"></div>
+    <div class="gpanel"><div class="gt">Which group?</div><div id="g-list"></div></div>
+  </div>
+
   <div class="toast" id="toast"></div>
 </div>
 
@@ -408,8 +435,9 @@
 <script>
 (function(){
   'use strict';
-  var LS = 'union-paytest-v3';
-  var state = { name:'', ini:'', group:'The Velvet Tavern', bal:50, people:[], sym:'\u269c', cur:'tokens' };
+  var LS = 'union-paytest-v4';
+  var state = { name:'', ini:'', people:[], gi:0, groups:[{name:'The Velvet Tavern',sym:'\u269c',cur:'tokens',bal:50}] };
+  function G(){ return G().names[state.gi] || G().names[0]; }
   var mode = 'pay', amtStr = '', pending = null, connectOpen = false, panelOpen = false, closingTimer = null;
   var stream = null, scanning = false, rafId = null, lastSeen = 0;
 
@@ -437,10 +465,10 @@
   /* ---------- money ---------- */
   function num(){ var n=parseFloat(amtStr); return isNaN(n)?0:Math.round(n*100)/100; }
   function fmt(n){ n=Math.round(n*100)/100; return (n%1===0)?String(n):n.toFixed(2); }
-  function money(n,c){ var sy=(c&&c.sym)||state.sym||''; return '<span class="sym">'+esc(sy)+'</span>'+fmt(n); }
-  function moneyTxt(n,c){ return ((c&&c.sym)||state.sym||'')+fmt(n); }
+  function money(n,c){ var sy=(c&&c.sym)||G().sym||''; return '<span class="sym">'+esc(sy)+'</span>'+fmt(n); }
+  function moneyTxt(n,c){ return ((c&&c.sym)||G().sym||'')+fmt(n); }
   function fmtTyping(s){
-    var sy='<span class="sym">'+esc(state.sym||'')+'</span>';
+    var sy='<span class="sym">'+esc(G().sym||'')+'</span>';
     if(!s) return sy+'0';
     var i=s.indexOf('.'); if(i<0) return sy+esc(s);
     return sy+esc(s.slice(0,i))+'<span class="dec">'+esc(s.slice(i))+'</span>';
@@ -462,7 +490,7 @@
     if(!t||t.indexOf('UNION:')!==0) return null;
     try{ var s=decodeURIComponent(escape(atob(t.slice(6)))); var p=s.split('\u001f');
       if(p[0]!=='U1'&&p[0]!=='U2') return null; var n=Math.round(parseFloat(p[2])*100)/100; if(!(n>0)) return null;
-      return {dir:p[1],amt:n,item:p[3],name:p[4]||'Someone',ini:p[5]||'??',group:p[6]||'',sym:p[7]||state.sym,cur:p[8]||state.cur};
+      return {dir:p[1],amt:n,item:p[3],name:p[4]||'Someone',ini:p[5]||'??',group:p[6]||'',sym:p[7]||G().sym,cur:p[8]||G().cur};
     }catch(e){ return null; }
   }
 
@@ -482,7 +510,7 @@
       + '<div class="li"><span>'+esc(o.item||'No description')+'</span><b>'+money(o.amt,o)+'</b></div>'
       + '<div class="rule"></div>'
       + '<div class="tot"><span class="l">TOTAL</span><span class="r">'+money(o.amt,o)+'</span></div>'
-      + '<div class="totcur">'+esc(o.cur||state.cur)+'</div>'
+      + '<div class="totcur">'+esc(o.cur||G().cur)+'</div>'
       + (o.paid ? '<div class="dash"></div><div class="paid">PAID</div>' : '')
       + '</div>';
   }
@@ -576,9 +604,22 @@
     var pill=$('#c-title');
     pill.className='modepill '+(m==='pay'?'pay':'req');
     pill.innerHTML = icon(m==='pay'?'i-pay':'i-req')+'<span>'+(m==='pay'?'Paying':'Requesting')+'</span>';
-    $('#c-grp').textContent=state.group; $('#c-cur').textContent=state.cur;
-    drawAmt(); closePanel(true); show('s-compose'); startCam();
+    drawGroup(); drawAmt(); closePanel(true); show('s-compose'); startCam();
   }
+  function drawGroup(){
+    var many=state.groups.length>1, c=$('#c-grp');
+    c.classList.toggle('many',many); c.disabled=!many;
+    c.innerHTML='<span id="c-grpname">'+esc(G().name)+'</span>'+(many?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>':'');
+    $('#c-cur').textContent=G().cur;
+  }
+  function openGroups(){
+    $('#g-list').innerHTML=state.groups.map(function(g,i){
+      return '<button class="grow'+(i===state.gi?' on':'')+'" data-gi="'+i+'"><span class="gs">'+esc(g.sym)+'</span><span class="gm"><b>'+esc(g.name)+'</b><span>'+esc(g.cur)+'</span></span><span class="gb">'+money(g.bal,g)+'<small>'+esc(g.cur)+'</small></span></button>';
+    }).join('');
+    $$('#g-list [data-gi]').forEach(function(b){ b.addEventListener('click',function(){ state.gi=parseInt(b.getAttribute('data-gi'),10); save(); hap('pick'); closeGroups(); drawGroup(); drawAmt(); }); });
+    var g=$('#gsheet'); g.classList.add('on'); g.setAttribute('aria-hidden','false');
+  }
+  function closeGroups(){ var g=$('#gsheet'); g.classList.remove('on'); g.setAttribute('aria-hidden','true'); }
   function drawAmt(){
     var e=$('#c-amt'), n=num();
     e.innerHTML=fmtTyping(amtStr); e.classList.toggle('zero', n===0);
@@ -602,23 +643,26 @@
   }
   function showMyCode(){
     var n=num();
-    var p={dir:mode,amt:n,item:$('#c-item').value.trim(),name:state.name,ini:state.ini,group:state.group,sym:state.sym,cur:state.cur};
+    var p={dir:mode,amt:n,item:$('#c-item').value.trim(),name:state.name,ini:state.ini,group:G().name,sym:G().sym,cur:G().cur};
     var txt=encode(p);
-    qrInto($('#qr'),txt,200,state.sym); $('#k-raw').value=txt;
+    qrInto($('#qr'),txt,200,G().sym); $('#k-raw').value=txt;
     $('#k-dir').textContent = mode==='pay'?'PAYING':'REQUESTING';
-    $('#k-big').innerHTML=money(n); $('#k-cur').textContent=state.cur; $('#k-item').textContent=p.item||'';
-    $('#k-ini').textContent=state.ini; $('#k-name').textContent=state.name; $('#k-grp').textContent=state.group;
+    $('#k-big').innerHTML=money(n); $('#k-cur').textContent=G().cur; $('#k-item').textContent=p.item||'';
+    $('#k-ini').textContent=state.ini; $('#k-name').textContent=state.name; $('#k-grp').textContent=G().name;
     show('s-code');
   }
   function onScanned(p){
+    var gi=-1; for(var i=0;i<state.groups.length;i++){ if(state.groups[i].name===p.group) gi=i; }
+    if(gi<0){ toast('That\u2019s a '+p.group+' code and you\u2019re not in that group'); if($('#s-compose').classList.contains('on')) startCam(); return; }
+    if(gi!==state.gi){ state.gi=gi; save(); if($('#s-compose').classList.contains('on')) drawGroup(); }
     if(p.dir==='request'){
       pending=p;
-      $('#f-receipt').innerHTML=receiptHTML({who:p.name,ini:p.ini,group:p.group||state.group,item:p.item,amt:p.amt,paid:false,when:new Date(),sym:p.sym,cur:p.cur});
-      $('#f-bal').innerHTML=money(state.bal)+' <span class="muted" style="font-weight:500">'+esc(state.cur)+'</span>';
-      $$('.f-grp').forEach(function(e){ e.textContent=p.group||state.group; });
+      $('#f-receipt').innerHTML=receiptHTML({who:p.name,ini:p.ini,group:p.group||G().name,item:p.item,amt:p.amt,paid:false,when:new Date(),sym:p.sym,cur:p.cur});
+      $('#f-bal').innerHTML=money(G().bal)+' <span class="muted" style="font-weight:500">'+esc(G().cur)+'</span>';
+      $$('.f-grp').forEach(function(e){ e.textContent=p.group||G().name; });
       $('#f-pay').textContent='Pay '+moneyTxt(p.amt,p);
-      $('#f-pay').disabled = p.amt>state.bal;
-      if(p.amt>state.bal) toast('Not enough '+state.cur+' for that');
+      $('#f-pay').disabled = p.amt>G().bal;
+      if(p.amt>G().bal) toast('Not enough '+G().cur+' for that');
       hap('pick'); show('s-confirm');
     } else {
       settle('in',p.amt,p.name,p.ini,p.item,p.group,p);
@@ -626,7 +670,7 @@
   }
   function settle(dir,n,who,ini,item,group,c){
     c=c||state;
-    state.bal=Math.round((dir==='out'?state.bal-n:state.bal+n)*100)/100;
+    G().bal=Math.round((dir==='out'?G().bal-n:G().bal+n)*100)/100;
     if(who && who!=='Someone' && state.people.indexOf(who)===-1) state.people.push(who);
     save();
     var isIn=dir==='in';
@@ -634,10 +678,10 @@
     $('#d-title').textContent = isIn?'':'You paid';
     $('#d-receipt').innerHTML = isIn
       ? '<div class="conf"><div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>'
-        + '<div class="t1">'+esc(who)+' paid you</div><div class="t2">'+money(n,c)+'</div><div class="curname light">'+esc(c.cur||state.cur)+'</div><div class="t3">'+esc(item||'')+'</div></div>'
-      : receiptHTML({who:who,ini:ini,group:group||state.group,item:item,amt:n,paid:true,when:new Date(),sym:c.sym,cur:c.cur});
-    $('#d-bal').innerHTML=money(state.bal)+' <span style="font-weight:500;opacity:.7">'+esc(state.cur)+'</span>';
-    $$('.f-grp').forEach(function(e){ e.textContent=group||state.group; });
+        + '<div class="t1">'+esc(who)+' paid you</div><div class="t2">'+money(n,c)+'</div><div class="curname light">'+esc(c.cur||G().cur)+'</div><div class="t3">'+esc(item||'')+'</div></div>'
+      : receiptHTML({who:who,ini:ini,group:group||G().name,item:item,amt:n,paid:true,when:new Date(),sym:c.sym,cur:c.cur});
+    $('#d-bal').innerHTML=money(G().bal)+' <span style="font-weight:500;opacity:.7">'+esc(G().cur)+'</span>';
+    $$('.f-grp').forEach(function(e){ e.textContent=group||G().name; });
     hap(isIn?'got':'paid');
     show('s-done');
   }
@@ -646,9 +690,12 @@
     $('#me-av').textContent=state.ini;
     var names=state.people.slice(); while(names.length<1) names.push('Philip Rosedale');
     $('#h-count').textContent=names.length;
-    $('#h-hint').innerHTML='Meet someone in person and scan their code to add them.<div style="margin-top:10px;font-size:13px">This group pays in <b style="color:var(--ink)">'+esc(state.sym)+' '+esc(state.cur)+'</b></div>';
+    $('#h-gcount').textContent=state.groups.length;
+    $('#h-groups').innerHTML=state.groups.map(function(g){
+      return '<div class="row"><div class="avatar" style="font-size:18px;background:var(--page)">'+esc(g.sym)+'</div><div class="m"><b>'+esc(g.name)+'</b><span>'+esc(g.cur)+'</span></div><div style="font-weight:700">'+money(g.bal,g)+'</div></div>';
+    }).join('');
     $('#h-people').innerHTML=names.map(function(n){
-      return '<div class="row"><div class="avatar">'+esc(initials(n))+'</div><div class="m"><b>'+esc(n)+'</b><span>'+esc(state.group)+'</span></div><div class="chev">›</div></div>';
+      return '<div class="row"><div class="avatar">'+esc(initials(n))+'</div><div class="m"><b>'+esc(n)+'</b><span>'+esc(G().name)+'</span></div><div class="chev">›</div></div>';
     }).join('');
   }
   function hash(s){ var h=0; for(var i=0;i<(s||'').length;i++){ h=(h*31+s.charCodeAt(i))|0; } return h; }
@@ -657,8 +704,12 @@
   $('#go-setup').addEventListener('click',function(){
     var n=$('#in-name').value.trim();
     if(!n){ toast('Pop your name in first'); $('#in-name').focus(); return; }
-    state.name=n; state.ini=initials(n); state.group=$('#in-group').value.trim()||'The Velvet Tavern';
-    state.sym=($('#in-sym').value||'').trim().slice(0,2)||'\u269c'; state.cur=$('#in-cur').value.trim()||'tokens';
+    state.name=n; state.ini=initials(n);
+    state.groups=[
+      { name:$('#in-group').value.trim()||'The Velvet Tavern', sym:($('#in-sym').value||'').trim().slice(0,2)||'\u269c', cur:$('#in-cur').value.trim()||'tokens', bal:50 },
+      { name:'Novato Climbers', sym:'\u26f0', cur:'holds', bal:12 },
+      { name:'Tuesday Book Club', sym:'\ud83d\udcda', cur:'pages', bal:140 }
+    ]; state.gi=0;
     save(); renderHome(); show('s-home');
   });
   $('#me-av').addEventListener('click',function(){
@@ -667,7 +718,9 @@
   });
   $('#ubtn').addEventListener('click',toggleHap);
   $('#p-scrim').addEventListener('click',function(){ closePanel(); });
-  document.addEventListener('keydown',function(e){ if(e.key==='Escape' && panelOpen) closePanel(); });
+  $('#c-grp').addEventListener('click',function(){ if(state.groups.length>1) openGroups(); });
+  $('#g-scrim').addEventListener('click',closeGroups);
+  document.addEventListener('keydown',function(e){ if(e.key==='Escape'){ if(panelOpen) closePanel(); closeGroups(); } });
 
   $('#keys').addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return; key(b.getAttribute('data-k')); });
   $('#c-cancel').addEventListener('click',function(){ stopCam(); renderHome(); show('s-home'); });
@@ -680,7 +733,7 @@
   $('#k-cancel').addEventListener('click',function(){ renderHome(); show('s-home'); });
   $('#k-done').addEventListener('click',function(){
     var item=$('#k-item').textContent.trim();
-    settle(mode==='pay'?'out':'in', num(), 'Someone', '?', item, state.group);
+    settle(mode==='pay'?'out':'in', num(), 'Someone', '?', item, G().name);
   });
   $('#f-no').addEventListener('click',function(){ pending=null; renderHome(); show('s-home'); });
   $('#f-pay').addEventListener('click',function(){ if(!pending) return; var p=pending; pending=null; settle('out',p.amt,p.name,p.ini,p.item,p.group,p); });
