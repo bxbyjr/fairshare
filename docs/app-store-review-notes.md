@@ -43,7 +43,18 @@ Each group can define its own internal token (often called credits, coins, or po
 
 There is **no** in-app purchase, no Stripe / PayPal / Apple Pay integration, no fiat on-ramp, no fiat off-ramp, no NFT/blockchain integration. Union does not require IAP because we never sell anything inside the app.
 
-(Schema labels like `payment_received` are internal event names; the user-facing UI exclusively uses words like "credits" and "send" — no real-money payment language.)
+### In-person "Pay" and "Request" (new in 1.1)
+
+Members can move group credits between each other in person by holding up a QR code: one person types an amount, the other scans it, and the credits move inside that group's ledger. The screens use the words **Pay** and **Request** and show a receipt-style summary, because that is the plainest way to describe who owes whom within the group's game. To be explicit:
+
+- The "amount" is always the group's own fictional token (e.g. "12 pints" in a pub group), never a currency of any country.
+- Nothing is charged to any card, bank, or Apple ID. There is no payment processor behind these screens.
+- Credits never leave the group, cannot be withdrawn, and have no cash value, exactly as above.
+- The QR code is just a one-time link into our own database (`?pay=TOKEN`); it is not a payment network QR.
+
+To try it: sign in with the demo account on two devices (or one device plus the web app at https://app.fairshare.social), tap the centre button, choose **Request**, type an amount; on the other device tap the centre button, choose **Pay**, and point the camera at the first screen. The first screen updates on its own when the credits move.
+
+(Schema labels like `payment_received` are internal event names.)
 
 ---
 
