@@ -17,6 +17,8 @@
     d.state.proposals.length = 0; d.members.forEach(m => m.status = 'active'); closeDemoMenu(); await render();
     showToast('Demo reset', 'info');
   };
+  window.openDirectMessageScreen = () => showToast('Demo: this would open your chat with them', 'info');
+  window.openContactDetailsById = () => showToast('Demo: this would open their contact card', 'info');
   window.toggleDemoMenu = function () { document.getElementById('demoMenu').classList.toggle('hidden'); };
   window.closeDemoMenu = function () { document.getElementById('demoMenu').classList.add('hidden'); };
   // Hook the toasts that come from the server in real life.

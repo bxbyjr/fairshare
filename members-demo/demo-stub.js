@@ -21,7 +21,7 @@
     reason: p.reason, created_at: p.created_at, i_voted: p.votes.has(state.me), i_proposed: p.proposer_id === state.me, is_me: p.target_id === state.me
   });
   const q = (table) => { const o = { _f: {}, select() { return o; }, eq(k, v) { o._f[k] = v; return o; }, in() { return o; }, gte() { return o; }, not() { return o; }, order() { return o; }, limit() { return o; },
-    maybeSingle() { return Promise.resolve({ data: null }); }, single() { return Promise.resolve({ data: null }); },
+    maybeSingle() { if (table === 'contacts' && ['u1','u3','u4'].includes(o._f.contact_id)) return Promise.resolve({ data: { contact_id: o._f.contact_id } }); return Promise.resolve({ data: null }); }, single() { return Promise.resolve({ data: null }); },
     then(res) { let data = []; if (table === 'members') data = members.filter(m => !o._f.status || m.status === o._f.status); res({ data, error: null, count: data.length }); } }; return o; };
   const fake = {
     rpc: async (fn, a) => {
