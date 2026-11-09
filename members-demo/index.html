@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <script>
+    // Camera (getUserMedia) requires a secure context — redirect HTTP → HTTPS
+    // Skip in Capacitor native shell (loads from capacitor://localhost)
+    if (!window.Capacitor?.isNativePlatform()
+        && location.protocol === 'http:'
+        && location.hostname !== 'localhost'
+        && location.hostname !== '127.0.0.1') {
+        location.replace('https://' + location.host + location.pathname + location.search + location.hash);
+    }
+    </script>
+    <title>Demo: Union</title>
+
+    <!-- PWA -->
+    
+    <meta name="theme-color" content="#3a7ca5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Union">
+    <link rel="apple-touch-icon" sizes="180x180" href="./icon-180.png">
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="styles.css?v=2">
+
+    <script>window.BUILD_VERSION = '__BUILD_VERSION__';</script>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<div class="header">
+    <button type="button" class="header-icon-btn header-globe-btn" onclick="navigateTo('globe')" title="Globe" aria-label="Globe"><i data-lucide="globe" aria-hidden="true"></i></button>
+    <span class="user-name" id="userDisplay" onclick="navigateTo('profile')" title="My Profile"></span>
+    <div class="header-right">
+        <div class="header-menu-wrap">
+            <button type="button" id="headerAvatarBtn" class="header-avatar-btn" onclick="toggleHeaderMenu(event)" aria-label="Account menu" aria-haspopup="menu" aria-expanded="false" title="Account">
+                <img id="headerAvatar" class="header-avatar-img hidden" src="" alt="">
+                <span id="headerAvatarFallback" class="header-avatar-fallback" aria-hidden="true"><i data-lucide="user-round" aria-hidden="true"></i></span>
+            </button>
+            <div id="headerMenu" class="header-menu hidden" role="menu" aria-labelledby="headerAvatarBtn">
+                <button type="button" class="header-menu-item" role="menuitem" onclick="onHeaderMenuClick('profile')">My Profile</button>
+                <button type="button" class="header-menu-item" role="menuitem" onclick="onHeaderMenuClick('preferences')">Preferences</button>
+                <button type="button" class="header-menu-item header-menu-item-danger" role="menuitem" onclick="onHeaderMenuClick('logout')">Logout</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== LOADING SCREEN (visible until auth resolves) ===== -->
+<div id="loadingScreen" class="loading-screen">
+    <div class="loading-screen-content">
+        <div class="loading-screen-title">Union</div>
+    </div>
+</div>
+
+<!-- ===== AUTH SCREEN ===== -->
+<div id="authScreen" class="auth-container hidden">
+    <h2>Union</h2>
+
+    <!-- Invite banner (shown when arriving via invite link) -->
+    <div id="inviteBanner" class="hidden" style="background:linear-gradient(135deg,#e3f0f8,#d4e8f5);border-radius:8px;padding:1rem;margin-bottom:1.5rem;border-left:4px solid var(--primary-color);">
+        <div id="inviteBannerText" style="font-size:0.9rem;color:var(--accent-color);line-height:1.5;"></div>
+    </div>
+
+    <div class="auth-tabs">
+        <div class="auth-tab active" data-tab="login" onclick="switchAuthTab('login')">Log In</div>
+        <div class="auth-tab" data-tab="signup" onclick="switchAuthTab('signup')">Sign Up</div>
+    </div>
+
+    <form id="loginForm" onsubmit="handleLogin(event)">
+        <div class="auth-social">
+            <!-- Shown on iOS only (body.oauth-apple-on); web needs a Services ID before this can work there. -->
+            <button type="button" class="btn btn-oauth btn-oauth-apple" onclick="handleOAuthLogin('apple')"><svg width="18" height="18" viewBox="9 7 21 25" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M 19.82 13.14 C 20.90 13.14 22.26 12.41 23.07 11.43 C 23.80 10.54 24.34 9.31 24.34 8.07 C 24.34 7.91 24.32 7.74 24.29 7.60 C 23.09 7.64 21.64 8.41 20.77 9.43 C 20.08 10.21 19.45 11.43 19.45 12.68 C 19.45 12.86 19.48 13.05 19.5 13.11 C 19.57 13.12 19.70 13.14 19.82 13.14 Z M 16.00 31.60 C 17.48 31.60 18.14 30.61 19.99 30.61 C 21.86 30.61 22.28 31.57 23.93 31.57 C 25.54 31.57 26.62 30.07 27.65 28.61 C 28.79 26.93 29.27 25.29 29.29 25.21 C 29.19 25.18 26.09 23.91 26.09 20.36 C 26.09 17.27 28.53 15.89 28.67 15.78 C 27.05 13.46 24.59 13.40 23.93 13.40 C 22.11 13.40 20.63 14.50 19.70 14.50 C 18.69 14.50 17.36 13.46 15.79 13.46 C 12.80 13.46 9.77 15.93 9.77 20.60 C 9.77 23.5 10.89 26.57 12.28 28.55 C 13.47 30.23 14.51 31.60 16.00 31.60 Z M 16.00 31.60"/></svg> Continue with Apple</button>
+            <button type="button" class="btn btn-oauth btn-oauth-google" onclick="handleOAuthLogin('google')"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Continue with Google</button>
+        </div>
+        <div class="auth-divider"><span>or</span></div>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="loginEmail" required placeholder="you@example.com">
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <div class="password-field">
+                <input type="password" id="loginPassword" required placeholder="Your password" minlength="6">
+                <button type="button" class="password-toggle" aria-label="Show password" onclick="togglePasswordVisibility(this)"><i data-lucide="eye" aria-hidden="true"></i></button>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Log In</button>
+        </div>
+        <div class="auth-forgot-row">
+            <a href="#" onclick="switchAuthTab('forgot'); return false;">Forgot password?</a>
+        </div>
+    </form>
+
+    <form id="forgotForm" class="hidden" onsubmit="handleForgotPassword(event)">
+        <p style="font-size:0.9rem;color:var(--dark-gray);margin-bottom:1rem;">
+            Enter your email and we'll send you a link to reset your password.
+        </p>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="forgotEmail" required placeholder="you@example.com">
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Send reset link</button>
+        </div>
+        <div class="auth-forgot-row">
+            <a href="#" onclick="switchAuthTab('login'); return false;">Back to log in</a>
+        </div>
+    </form>
+
+    <form id="signupForm" class="hidden" onsubmit="handleSignup(event)">
+        <div id="signupGate" class="hidden auth-signup-gate">
+            <p class="auth-signup-gate-text">
+                You need to be sponsored by another Union member to sign up.
+                Scan the QR code on their app.
+            </p>
+            <button type="button" class="btn btn-primary auth-signup-gate-btn" onclick="openAuthScanOverlay()">
+                <span class="auth-scan-btn-icon" aria-hidden="true"><i data-lucide="qr-code" aria-hidden="true"></i></span> Scan QR
+            </button>
+        </div>
+        <div id="signupFields">
+            <div class="form-group">
+                <label>Display Name</label>
+                <input type="text" id="signupName" required placeholder="How others will see you" minlength="2">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="signupEmail" required placeholder="you@example.com">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <div class="password-field">
+                    <input type="password" id="signupPassword" required placeholder="At least 6 characters" minlength="6">
+                    <button type="button" class="password-toggle" aria-label="Show password" onclick="togglePasswordVisibility(this)"><i data-lucide="eye" aria-hidden="true"></i></button>
+                </div>
+            </div>
+            <div class="form-group auth-agree-row">
+                <label class="auth-agree-label">
+                    <input type="checkbox" id="signupAgree" required>
+                    <span>I am at least 18 years old and I agree to the
+                        <a href="#" onclick="openSignupTerms(); return false;">Terms of Use</a>
+                        and
+                        <a href="#" onclick="openSignupPrivacy(); return false;">Privacy Policy</a>.
+                        Union has zero tolerance for objectionable content or abusive users.</span>
+                </label>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success">Create Account</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- ===== APP (hidden until logged in) ===== -->
+<div id="appScreen" class="hidden">
+    <div class="main-content">
+
+        <!-- ===== CONTACTS VIEW (default) ===== -->
+        <div id="contactsScreen">
+            <div class="contacts-toolbar">
+                <div class="contacts-search-wrap">
+                    <i class="contacts-search-icon" data-lucide="search" aria-hidden="true"></i>
+                    <input
+                        type="search"
+                        id="contactsSearchInput"
+                        class="contacts-search-input"
+                        placeholder="Search name, email, or phone"
+                        aria-label="Search contacts"
+                        autocomplete="off">
+                    <button
+                        type="button"
+                        id="contactsSearchClearBtn"
+                        class="contacts-search-clear hidden"
+                        aria-label="Clear search">
+                        <i data-lucide="x" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="contacts-sort-wrap">
+                    <button
+                        type="button"
+                        id="contactsSortBtn"
+                        class="contacts-sort-btn"
+                        aria-label="Change sort order"
+                        aria-haspopup="listbox"
+                        aria-expanded="false"
+                        aria-controls="contactsSortMenu"
+                        title="Sort contacts">
+                        <span class="contacts-sort-label" id="contactsSortLabel">Trust</span>
+                        <span class="contacts-sort-arrow"><i data-lucide="chevron-down" aria-hidden="true"></i></span>
+                    </button>
+                    <div id="contactsSortMenu" class="contacts-sort-menu hidden" role="listbox" aria-labelledby="contactsSortBtn">
+                        <button type="button" class="contacts-sort-option" role="option" data-sort-mode="recent">Met</button>
+                        <button type="button" class="contacts-sort-option" role="option" data-sort-mode="age">Known</button>
+                        <button type="button" class="contacts-sort-option" role="option" data-sort-mode="trust">Trust</button>
+                        <button type="button" class="contacts-sort-option" role="option" data-sort-mode="custom">Custom</button>
+                    </div>
+                </div>
+            </div>
+            <div class="contacts-list-wrap">
+                <div id="contactsListContent">
+                    <p style="color:var(--dark-gray);text-align:center;padding:2rem;">Loading…</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== GROUPS VIEW ===== -->
+        <div id="groupsContent" class="hidden">
+            <!-- My Groups screen (full-page list) -->
+            <div id="groupsScreen">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">
+                    <h2 style="color:var(--accent-color);">My Groups</h2>
+                    <button class="btn btn-primary" onclick="showModal('createGroup')">+ Create Group</button>
+                </div>
+                <div id="groupList">
+                    <!-- Populated dynamically -->
+                </div>
+                <p id="groupsEmptyHint" class="hidden" style="text-align:center;color:var(--dark-gray);margin-top:2rem;">
+                    Create a new group to get started, or ask an existing member to sponsor you.
+                </p>
+            </div>
+
+            <!-- Group view (hidden until group selected) -->
+            <div id="groupView" class="hidden">
+                <div class="card balance-card group-name-link" onclick="showGroupsList()" style="display:flex;align-items:center;">
+                    <div class="group-header-center">
+                        <div class="group-avatar-wrap group-header-avatar-wrap" onclick="onGroupLogoClick(event)" title="Click to change group logo">
+                            <div id="groupAvatarImg" class="group-avatar-placeholder" aria-label="Group logo"><i data-lucide="users-round" aria-hidden="true"></i></div>
+                        </div>
+                        <div class="balance-amount" id="groupNameDisplay"></div>
+                    </div>
+                </div>
+                <input type="file" id="groupLogoInput" accept="image/*" class="hidden">
+
+                <!-- Tab bar -->
+                <div class="tab-bar" id="tabBar">
+                    <button class="tab-btn active" data-tab="money" onclick="switchTab('money')">
+                        <span class="tab-icon"><i data-lucide="coins" aria-hidden="true"></i></span><span class="tab-label"> Credits</span>
+                    </button>
+                    <button class="tab-btn" data-tab="members" onclick="switchTab('members')">
+                        <span class="tab-icon"><i data-lucide="users" aria-hidden="true"></i></span><span class="tab-label"> Members</span>
+                    </button>
+                    <button class="tab-btn" data-tab="governance" onclick="switchTab('governance')">
+                        <span class="tab-icon"><i data-lucide="landmark" aria-hidden="true"></i></span><span class="tab-label"> Governance</span>
+                    </button>
+                    <button class="tab-btn" data-tab="commons" onclick="switchTab('commons')">
+                        <span class="tab-icon"><i data-lucide="library" aria-hidden="true"></i></span><span class="tab-label"> Commons</span>
+                    </button>
+                    <button class="tab-btn" data-tab="chat" onclick="switchTab('chat')">
+                        <span class="tab-icon"><i data-lucide="messages-square" aria-hidden="true"></i></span><span class="tab-label"> Chat</span>
+                    </button>
+                </div>
+
+                <!-- Tab content -->
+                <div class="tab-content-card" id="tabContent">
+                    <!-- Populated dynamically per active tab -->
+                </div>
+
+                <!-- Activity log (always visible below tabs) -->
+                <div class="card" id="activityLog">
+                    <h3>Activity</h3>
+                    <div id="activityContent">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== PROFILE VIEW ===== -->
+        <div id="profileScreen" class="hidden">
+            <div id="profileScreenContent">
+                <!-- Populated dynamically by renderProfileScreen() -->
+            </div>
+        </div>
+
+        <!-- ===== CONTACT DETAILS VIEW (Variation A) ===== -->
+        <div id="contactDetailsScreen" class="hidden">
+            <!-- Populated dynamically by openContactDetailsScreen() -->
+        </div>
+
+        <!-- ===== DIRECT MESSAGE VIEW ===== -->
+        <div id="directMessageScreen" class="hidden">
+            <!-- Populated dynamically by renderDirectMessageScreen() -->
+        </div>
+
+        <!-- ===== GLOBE VIEW ===== -->
+        <div id="globeScreen" class="hidden">
+            <div class="globe-viz-wrap">
+                <div id="globeViz" class="globe-viz"></div>
+                <div id="globeEmptyHint" class="globe-empty-hint hidden">No selfie locations yet. Take a selfie with someone to see them here.</div>
+            </div>
+            <div class="globe-stats-panel">
+                <div id="globeSharingLine" class="globe-stats-sharing"></div>
+                <div id="globeCitiesLine" class="globe-stats-cities"></div>
+                <table class="globe-stats-table">
+                    <tbody id="globeStatsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== BOTTOM BAR ===== -->
+    <div class="bottom-bar" id="bottomBar">
+        <button type="button" class="bottom-bar-btn active" data-view="contacts" onclick="navigateTo('contacts')" aria-label="Contacts">
+            <i class="bottom-bar-lucide" data-lucide="user-round" aria-hidden="true"></i>
+            <span class="bottom-bar-label">Contacts</span>
+        </button>
+        <button type="button" class="bottom-bar-btn bottom-bar-btn-center" id="unionButton" onclick="openUnionFan()" aria-label="Union" aria-haspopup="menu" aria-controls="unionFan">
+            <span class="bottom-bar-handshake"><i data-lucide="heart-handshake" aria-hidden="true"></i></span>
+        </button>
+        <button type="button" class="bottom-bar-btn" data-view="groups" onclick="navigateTo('groups')" aria-label="Groups">
+            <i class="bottom-bar-lucide" data-lucide="users-round" aria-hidden="true"></i>
+            <span class="bottom-bar-label">Groups</span>
+        </button>
+    </div>
+</div>
+
+<!-- Full-screen flash for successful handshake -->
+<div id="handshakeFlash" class="handshake-flash"></div>
+
+<!-- ===== NEW-CONTACT FULLSCREEN SELFIE OVERLAY ===== -->
+<div id="newContactSelfieOverlay" class="new-contact-selfie-overlay hidden">
+    <video id="newContactSelfieVideo" autoplay playsinline muted class="new-contact-selfie-video"></video>
+    <img id="newContactSelfiePreview" class="new-contact-selfie-preview hidden" alt="Selfie preview" />
+    <div class="new-contact-selfie-banner" id="newContactSelfieBanner">Take a selfie with your new contact!</div>
+    <button type="button" class="new-contact-selfie-flip" id="newContactSelfieFlipBtn" onclick="flipCameraOverlay()" title="Switch camera" aria-label="Switch camera"><i data-lucide="switch-camera" aria-hidden="true"></i></button>
+    <button class="new-contact-selfie-skip" id="newContactSelfieSkipBtn" onclick="closeNewContactSelfieOverlay({navigate:true})"><i data-lucide="x" aria-hidden="true"></i></button>
+    <button class="new-contact-selfie-capture" id="newContactSelfieCaptureBtn" onclick="captureContactSelfie()"><i data-lucide="camera" aria-hidden="true"></i></button>
+    <div id="newContactSelfieReview" class="new-contact-selfie-review hidden">
+        <button type="button" class="new-contact-selfie-retake" id="newContactSelfieRetakeBtn" onclick="retakeContactSelfie()">Retake</button>
+        <button type="button" class="new-contact-selfie-use" id="newContactSelfieUseBtn" onclick="useContactSelfie()">Use</button>
+    </div>
+</div>
+
+<!-- ===== MEET / QR CONTACT EXCHANGE OVERLAY ===== -->
+<!-- ===== UNION FAN (Pay / Request / Connect) ===== -->
+<div id="unionFan" class="union-fan hidden" aria-hidden="true">
+    <div class="union-fan-scrim" onclick="closeUnionFan()"></div>
+    <div class="union-fan-items" role="menu" aria-label="Union actions">
+        <div class="ufi" style="--tx:-96px;--ty:-116px;--d:0ms">
+            <button type="button" class="ubub pay" role="menuitem" aria-label="Pay" onclick="unionFanPick('pay')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+            <span class="ulab" aria-hidden="true">Pay</span>
+        </div>
+        <div class="ufi" style="--tx:96px;--ty:-116px;--d:35ms">
+            <button type="button" class="ubub req" role="menuitem" aria-label="Request" onclick="unionFanPick('request')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg></button>
+            <span class="ulab" aria-hidden="true">Request</span>
+        </div>
+        <div class="ufi small" style="--tx:0px;--ty:-212px;--d:90ms">
+            <button type="button" class="ubub con" role="menuitem" aria-label="Connect" onclick="unionFanPick('connect')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.5-3 2.8-4.6 5.5-4.6s5 1.6 5.5 4.6"/><path d="M18 8v6M15 11h6"/></svg></button>
+            <span class="ulab" aria-hidden="true">Connect</span>
+        </div>
+    </div>
+    <button type="button" class="union-fan-close" onclick="closeUnionFan()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+</div>
+
+<!-- ===== PAY / REQUEST FLOW ===== -->
+<div id="payOverlay" class="pay-overlay hidden">
+    <canvas id="payCanvas" style="display:none;"></canvas>
+
+    <section class="pay-view" data-view="compose">
+        <div class="pay-topbar">
+            <button type="button" class="pay-link" onclick="closePayFlow()">Cancel</button>
+            <span class="pay-modepill pay" id="payModePill" role="status"></span>
+            <button type="button" class="pay-link pay-link-r" onclick="payPasteCode()" title="Enter a code by hand">Paste</button>
+        </div>
+        <div class="pay-camwrap" id="payCamWrap">
+            <video id="payVideo" autoplay playsinline muted></video>
+            <div class="bk"><i></i><i></i><i></i><i></i></div>
+            <div class="cl" id="payCamHint">Scan their code</div>
+        </div>
+        <div class="pay-or"><span>OR</span></div>
+        <div class="pay-amtbox">
+            <div class="v zero" id="payAmount" aria-live="polite">0</div>
+            <div class="pay-curname" id="payCurName"></div>
+            <button type="button" class="pay-chip" id="payGroupChip" onclick="openPayGroups()" aria-haspopup="dialog"></button>
+        </div>
+        <div class="pay-memo"><input type="text" id="payMemo" placeholder="What is it for?" maxlength="60" autocomplete="off"></div>
+        <div class="pay-keys" role="group" aria-label="Amount keypad">
+            <button type="button" onclick="payKey('1')">1</button><button type="button" onclick="payKey('2')">2</button><button type="button" onclick="payKey('3')">3</button>
+            <button type="button" onclick="payKey('4')">4</button><button type="button" onclick="payKey('5')">5</button><button type="button" onclick="payKey('6')">6</button>
+            <button type="button" onclick="payKey('7')">7</button><button type="button" onclick="payKey('8')">8</button><button type="button" onclick="payKey('9')">9</button>
+            <button type="button" class="dim" onclick="payKey('.')" aria-label="Decimal point">.</button><button type="button" onclick="payKey('0')">0</button><button type="button" class="dim" onclick="payKey('x')" aria-label="Delete">&#9003;</button>
+        </div>
+        <div class="pay-foot"><button type="button" class="pay-btn" id="payGo" disabled onclick="payMakeCode()">Pay</button></div>
+    </section>
+
+    <section class="pay-view pay-view-code hidden" data-view="code">
+        <div class="pay-topbar">
+            <button type="button" class="pay-link light" onclick="payCancelCode()">Cancel</button><span></span><span></span>
+        </div>
+        <div class="pay-qrcard"><div id="payQrBox" class="pay-qr"></div></div>
+        <div class="pay-dirlab" id="payCodeDir"></div>
+        <div class="pay-big" id="payCodeAmt"></div>
+        <div class="pay-curname light center" id="payCodeCur"></div>
+        <div class="pay-item" id="payCodeMemo"></div>
+        <div class="pay-hr"></div>
+        <div class="pay-who" id="payCodeName"></div>
+        <div class="pay-grp" id="payCodeGroup"></div>
+        <div class="pay-wait">Hold this up for them to scan.</div>
+    </section>
+
+    <section class="pay-view hidden" data-view="confirm">
+        <div class="pay-topbar">
+            <button type="button" class="pay-link" onclick="payDecline()">Cancel</button>
+            <span class="pay-title">Confirm</span><span></span>
+        </div>
+        <div id="payConfirmReceipt"></div>
+        <div class="pay-balline"><div class="l">Your balance in <span id="payConfirmGroup"></span></div><div class="r" id="payConfirmBal"></div></div>
+        <div class="pay-foot pay-foot-end">
+            <button type="button" class="pay-btn" id="payConfirmGo" onclick="payConfirmPay()">Pay</button>
+            <button type="button" class="pay-btn ghost" onclick="payDecline()">Decline</button>
+        </div>
+    </section>
+
+    <section class="pay-view hidden" data-view="done" id="payDone">
+        <div class="pay-topbar"><span></span><span class="pay-title" id="payDoneTitle"></span><span></span></div>
+        <div id="payDoneBody"></div>
+        <div class="pay-balline"><div class="l">Your balance in <span id="payDoneGroup"></span></div><div class="r" id="payDoneBal"></div></div>
+        <div class="pay-foot pay-foot-end"><button type="button" class="pay-btn" onclick="closePayFlow()">Done</button></div>
+    </section>
+
+    <div id="payGroupSheet" class="pay-gsheet hidden" aria-hidden="true" role="dialog" aria-label="Which group">
+        <div class="pay-gscrim" onclick="closePayGroups()"></div>
+        <div class="pay-gpanel"><div class="gt">Which group?</div><div id="payGroupList"></div></div>
+    </div>
+</div>
+
+<div id="meetOverlay" class="meet-overlay hidden">
+    <button class="meet-close" onclick="closeMeetScreen()" aria-label="Close"><i data-lucide="x" aria-hidden="true"></i></button>
+    <div class="meet-camera-pip">
+        <video id="meetVideo" autoplay playsinline muted></video>
+    </div>
+    <div class="meet-qr-section">
+        <div class="meet-group-badge" id="meetGroupBadge" style="display:none;"></div>
+        <div class="meet-qr-box" id="meetQrBox">
+            <!-- QR code rendered here -->
+        </div>
+        <button class="meet-copy-btn" id="meetCopyBtn" onclick="copyMeetLink()" style="display:none;"><i data-lucide="clipboard-copy" aria-hidden="true"></i><span>Copy invite link</span></button>
+        <div class="meet-profile-row">
+            <button class="meet-share-icon" id="meetSharePhone" onclick="toggleMeetShare('phone')" title="Share phone number">
+                <i data-lucide="phone" aria-hidden="true"></i>
+            </button>
+            <img class="meet-profile-photo" id="meetProfilePhoto" alt="" />
+            <button class="meet-share-icon" id="meetShareEmail" onclick="toggleMeetShare('email')" title="Share email address">
+                <i data-lucide="mail" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div class="meet-profile-name" id="meetProfileName"></div>
+        <div class="meet-shared-info" id="meetSharedInfo" style="display:none;"></div>
+    </div>
+    <canvas id="meetCanvas" style="display:none;"></canvas>
+    <div class="meet-scan-hint" id="meetScanHint">(Show your phones to each other)</div>
+</div>
+
+
+<!-- ===== AUTH QR SCAN OVERLAY (used before login from Sign Up tab) ===== -->
+<div id="authScanOverlay" class="auth-scan-overlay hidden">
+    <video id="authScanVideo" autoplay playsinline muted class="auth-scan-video"></video>
+    <div class="auth-scan-banner">Point your camera at your sponsor's QR code</div>
+    <button class="auth-scan-close" onclick="closeAuthScanOverlay()" aria-label="Close"><i data-lucide="x" aria-hidden="true"></i></button>
+    <canvas id="authScanCanvas" style="display:none;"></canvas>
+</div>
+
+<!-- ===== MODAL CONTAINER ===== -->
+<div id="modalOverlay" class="modal-overlay hidden" onmousedown="this._d=(event.target===this)" ontouchstart="this._d=(event.target===this)" onclick="if(this._d&&event.target===this)closeModal();this._d=false">
+    <div class="modal" id="modalBody">
+        <!-- Populated dynamically per modal type -->
+    </div>
+</div>
+
+<!-- ===== EXTERNAL LIBRARIES ===== -->
+<script src="vendor/lucide.min.js"></script>
+<script src="js/lucide-refresh.js"></script>
+<script src="demo-stub.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script defer src="https://unpkg.com/globe.gl"></script>
+
+<!-- ===== APP MODULES ===== -->
+<script src="js/config.js"></script>
+<script src="js/app-orientation.js"></script>
+<script src="js/constants.js"></script>
+<script src="js/state.js"></script>
+<script src="js/demo-accounts.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/db.js"></script>
+<script src="js/pay-api.js"></script>
+<script src="js/session.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/avatars.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/map-location.js"></script>
+<script src="js/direct-message.js"></script>
+<script src="js/transactions.js"></script>
+<script src="js/members.js"></script>
+    <script src="js/removal-votes.js"></script>
+<script src="js/candidates.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/constitution.js"></script>
+<script src="js/groups.js"></script>
+<script src="js/tabs.js"></script>
+<script src="js/modals.js"></script>
+<script src="js/create-group.js"></script>
+<script src="js/sponsor.js"></script>
+<script src="js/group-invitations.js"></script>
+<script src="js/send-currency.js"></script>
+<script src="js/vote.js"></script>
+<script src="js/realtime.js"></script>
+<script src="js/navigation.js"></script>
+<script src="js/globe.js"></script>
+<script src="js/meet.js"></script>
+<script src="js/pay.js"></script>
+<script src="js/nearby.js"></script>
+<script src="js/location-sharing.js"></script>
+<script src="js/contacts.js"></script>
+<script src="js/chat-images.js"></script>
+    <script src="js/contact-details.js"></script>
+    <script src="js/contact-intro.js"></script>
+    <script src="js/preferences.js"></script>
+<script src="js/web-of-trust.js"></script>
+<script src="js/safety.js"></script>
+<script src="js/push.js"></script>
+<script src="js/init.js"></script>
+<script src="demo-boot.js"></script>
+
+<!-- PWA: Register service worker (skipped inside Capacitor native shell) -->
+<script>
+if (!window.Capacitor?.isNativePlatform() && 'serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log(APP_NAME + ' SW registered, scope:', reg.scope))
+        .catch(err => console.error(APP_NAME + ' SW registration failed:', err));
+}
+</script>
+</body>
+</html>
