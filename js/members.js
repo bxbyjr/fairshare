@@ -71,11 +71,16 @@ async function loadMembersList() {
                 <span class="member-tx-out${flow.out ? '' : ' member-tx-idle'}">-${sym} ${flow.out.toFixed(2)}</span>
             </span>`
             : '';
+        const isMe = m.user_id === currentUser?.id;
+        const moreHtml = isMe ? '' :
+            `<button class="member-more" title="More" aria-label="More options for ${esc(displayName)}"
+                onclick="openProposeRemoval('${m.user_id}', ${JSON.stringify(displayName).replace(/"/g, '&quot;')})">&#8943;</button>`;
         return `<div class="member-item">
             ${avatarHtml}
             <span class="member-name">${esc(displayName)}</span>
             ${sponsorLabel ? `<span class="member-sponsor">${sponsorLabel}</span>` : ''}
             ${flowHtml}
+            ${moreHtml}
         </div>`;
     }).join('');
 }
