@@ -375,6 +375,7 @@
             <div class="bk"><i></i><i></i><i></i><i></i></div>
             <div class="cl" id="payCamHint">Scan their code</div>
         </div>
+        <div class="pay-people" id="payPeople" aria-label="Pay someone you know"></div>
         <div class="pay-or"><span>OR</span></div>
         <div class="pay-amtbox">
             <div class="v zero" id="payAmount" aria-live="polite">0</div>
@@ -429,6 +430,14 @@
     <div id="payGroupSheet" class="pay-gsheet hidden" aria-hidden="true" role="dialog" aria-label="Which group">
         <div class="pay-gscrim" onclick="closePayGroups()"></div>
         <div class="pay-gpanel"><div class="gt">Which group?</div><div id="payGroupList"></div></div>
+    </div>
+    <div id="payPeopleSheet" class="pay-gsheet hidden" aria-hidden="true" role="dialog" aria-label="Who are you paying">
+        <div class="pay-gscrim" onclick="closePayPeople()"></div>
+        <div class="pay-gpanel">
+            <div class="gt">Who are you paying?</div>
+            <input type="search" id="payPeopleQ" class="pay-psearch" placeholder="Search your groups" autocomplete="off" oninput="payFilterPeople()">
+            <div id="payPeopleList"></div>
+        </div>
     </div>
 </div>
 
