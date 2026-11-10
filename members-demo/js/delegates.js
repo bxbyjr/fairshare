@@ -8,6 +8,7 @@
 // delegate_set_policy. Until then this runs against the demo stub only.
 
 let delegates = [];            // [{user_id, name, powers:['money','admissions'], since}]
+const DELEGATE_ALL = ['money', 'admissions'];   // one role, both powers; a split is a later option
 let delegateProposals = [];    // same shape as removal proposals, plus kind and powers
 
 const DELEGATE_POWERS = {
@@ -50,7 +51,7 @@ function renderDelegateVotes() {
         const who = p.is_me ? '<strong>you</strong>' : `<strong>${esc(p.target_name)}</strong>`;
         const title = p.kind === 'recall'
             ? `Recall ${who} as delegate?`
-            : `Make ${who} the delegate for ${esc(powersLabel(p.powers))}?`;
+            : `Make ${who} the group's delegate?`;
         let action = '';
         if (p.is_me) { /* the person being voted on watches, same as removal */ }
         else if (p.i_proposed) action = `<button class="btn btn-small btn-ghost" onclick="withdrawDelegate('${p.id}')">Withdraw</button>`;
@@ -105,18 +106,11 @@ function openNominateDelegate(userId, displayName) {
     const pct = Math.round((typeof parseNewMemberThreshold === 'function' ? parseNewMemberThreshold(selectedGroup.constitution) : 1) * 100);
     const days = typeof parseVotingPeriodDays === 'function' ? parseVotingPeriodDays(selectedGroup.constitution) : null;
     const rule = `${pct}% of the other members have to agree` + (days ? `, within ${days} day${days === 1 ? '' : 's'}` : '') + '.';
-    const taken = k => { const d = delegateFor(k); return d && d.user_id !== userId ? d.name : null; };
-    const checks = Object.entries(DELEGATE_POWERS).map(([k, v]) => {
-        const t = taken(k);
-        return `<label class="delegate-check${t ? ' is-taken' : ''}">
-            <input type="checkbox" name="power" value="${k}" ${t ? 'disabled' : 'checked'}>
-            <span><b>${v.label}</b><small>${t ? `${esc(t)} holds this now. Recall them first.` : v.sub}</small></span>
-        </label>`;
-    }).join('');
+    const current = delegates[0] && delegates[0].user_id !== userId ? delegates[0].name : null;
     body.innerHTML = `
         <h3>Nominate ${name} as delegate</h3>
-        <p class="removal-explain">A delegate decides for the group instead of a vote. The group can recall ${first} the same way, any time. This starts a vote everyone can see. ${rule} Your nomination counts as your vote.</p>
-        <div class="delegate-checks">${checks}</div>
+        <p class="removal-explain">The delegate sets the fee rate and daily income, and decides who gets in, instead of the group voting each time. The group can recall ${first} the same way, any time. This starts a vote everyone can see. ${rule} Your nomination counts as your vote.</p>
+        ${current ? `<p class="removal-explain"><strong>${esc(current)}</strong> is the delegate now. If this passes, ${first.replace('you', 'you')} take${me ? '' : 's'} over.</p>` : ''}
         <div class="form-group">
             <label for="delegateReason">Why ${first}? (optional, shown to the group)</label>
             <textarea id="delegateReason" rows="2" maxlength="280" placeholder="Keep it short."></textarea>
@@ -128,8 +122,7 @@ function openNominateDelegate(userId, displayName) {
     overlay.classList.remove('hidden');
 }
 async function submitNominateDelegate(userId) {
-    const powers = [...document.querySelectorAll('#modalBody input[name=power]:checked')].map(i => i.value);
-    if (!powers.length) { showToast('Tick at least one thing for them to hold', 'error'); return; }
+    const powers = DELEGATE_ALL;
     const reason = (document.getElementById('delegateReason')?.value || '').trim();
     const { data, error } = await db.rpc('propose_delegate', {
         p_group_id: selectedGroup.id, p_target_id: userId, p_powers: powers, p_reason: reason || null
@@ -148,7 +141,7 @@ async function proposeRecallDelegate(userId, displayName) {
     body.classList.remove('beta-ios-modal');
     body.innerHTML = `
         <h3>Recall ${name} as delegate?</h3>
-        <p class="removal-explain">${name} currently decides ${esc(powersLabel(d.powers))} for the group. If the recall passes, the group goes back to voting on it. Same rule as any other vote.</p>
+        <p class="removal-explain">${name} currently sets money policy and decides admissions for the group. If the recall passes, the group goes back to voting on both. Same rule as any other vote.</p>
         <div class="form-group">
             <label for="delegateReason">Why? (optional, shown to the group)</label>
             <textarea id="delegateReason" rows="2" maxlength="280"></textarea>
@@ -185,7 +178,7 @@ function whoDecidesHtml() {
         <h4 class="removal-h">Who decides</h4>
         ${row('Money policy', money, 'Fee rate and daily income are the median of all votes.')}
         ${row('Admissions', adm, `A candidate gets in at ${pct}% endorsements.`)}
-        <p class="decides-note">${delegates.length ? 'A delegate\'s changes show up in the group feed with their name on them.' : 'To hand either of these to one person, open them on the Members tab and tap Nominate as delegate.'}</p>
+        <p class="decides-note">${delegates.length ? 'A delegate\'s changes show up in the group feed with their name on them.' : 'To hand both of these to one person, open them on the Members tab and tap Nominate as delegate.'}</p>
     </div>`;
 }
 

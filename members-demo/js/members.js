@@ -80,7 +80,7 @@ async function loadMembersList() {
         return `<button type="button" class="member-item member-item-btn" onclick="openMemberSheet('${m.user_id}')">
             ${avatarHtml}
             <span class="member-name">${esc(displayName)}</span>
-            ${del ? `<span class="delegate-badge" title="Delegate for ${esc(powersLabel(del.powers))}">Delegate</span>` : ''}
+            ${del ? `<span class="delegate-badge" title="Sets money policy and decides admissions">Delegate</span>` : ''}
             ${sponsorLabel && !del ? `<span class="member-sponsor">${sponsorLabel}</span>` : ''}
             ${flowHtml}
         </button>`;
@@ -108,7 +108,7 @@ async function openMemberSheet(userId) {
     const currencyOn = groupCurrencyEnabled(selectedGroup);
     const joined = m.joinedAt ? new Date(m.joinedAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : '';
     const del = typeof delegateOf === 'function' ? delegateOf(userId) : null;
-    const sub = del ? `Delegate for ${esc(powersLabel(del.powers))}` : (m.isCreator ? 'Founder' : (m.sponsor ? `Sponsored by ${esc(m.sponsor)}` : 'Member'));
+    const sub = del ? 'Delegate · money policy and admissions' : (m.isCreator ? 'Founder' : (m.sponsor ? `Sponsored by ${esc(m.sponsor)}` : 'Member'));
     const nameArg = JSON.stringify(m.displayName).replace(/"/g, '&quot;');
     const delegateBtn = del
         ? `<button class="btn btn-ghost member-sheet-btn member-sheet-danger" onclick="closeMemberSheet(); proposeRecallDelegate('${userId}', ${nameArg})">Propose recall as delegate</button>`
