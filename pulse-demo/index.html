@@ -34,6 +34,12 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .h2 h2{margin:0;font-size:22px}
 .gbtn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:18px;border-radius:14px;background:linear-gradient(135deg,var(--head1),var(--head2));color:#fff;font-weight:700;font-size:17px;margin-bottom:10px}
 .gbtn.dim{opacity:.55}
+.pane{display:none} .pane.on{display:block}
+.crow{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 12px;background:#fff;border:1px solid var(--rule);border-radius:14px;margin-bottom:8px}
+.crow .av{width:40px;height:40px;font-size:13px} .crow .n{font-weight:600;font-size:15px} .crow .s{font-size:12.5px;color:var(--ink2)}
+.web-card{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:14px;background:linear-gradient(135deg,var(--brand-bg),#fff);border:1px solid var(--rule);border-radius:14px;margin-bottom:14px}
+.web-card .faces{display:flex} .web-card .faces .av{width:30px;height:30px;font-size:10px;border:2px solid #fff;margin-left:-9px} .web-card .faces .av:first-child{margin-left:0}
+.web-card .t{flex:1;font-size:14.5px;font-weight:600} .web-card .t small{display:block;font-weight:400;color:var(--ink2);font-size:12.5px}
 .hint{font-size:12.5px;color:var(--ink2);margin:18px 4px 0;line-height:1.5}
 .bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--rule);padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-around;align-items:flex-end;max-width:480px;margin:0 auto;z-index:5}
 .bar button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--ink3);width:90px}
@@ -120,7 +126,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 @keyframes ping2{to{box-shadow:0 0 0 12px rgba(45,95,125,0)}}
 .toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 70px);transform:translateX(-50%) translateY(-10px);background:#111;color:#fff;padding:9px 14px;border-radius:999px;font-size:13px;opacity:0;transition:all var(--t);z-index:40;pointer-events:none;white-space:nowrap}
 .toast.on{opacity:1;transform:translateX(-50%)}
-.demo-pill{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 96px);z-index:50;font-size:12px;background:#111;color:#fff;border-radius:999px;padding:6px 12px;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none}
+.demo-pill{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 78px);z-index:8;font-size:11px;opacity:.85;background:#111;color:#fff;border-radius:999px;padding:6px 12px;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important} .chain .p{opacity:1;transform:none} .chain .l:after{transform:none}}
 </style>
 </head>
@@ -136,15 +142,23 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
     </div>
   </header>
   <div class="scroll">
-    <div class="h2"><h2>My Groups</h2><button class="chip" style="color:var(--brand);background:var(--brand-bg);border-color:transparent">+ Create Group</button></div>
-    <button class="gbtn" onclick="openPulse()">The Velvet Tavern</button>
-    <button class="gbtn dim">CIMC</button>
-    <p class="hint">Demo. The heartbeat icon top left is where the globe button was. Tap it (or the group) to open Pulse. Bottom bar is just Contacts, Union, Groups.</p>
+    <div class="pane on" id="paneGroups">
+      <div class="h2"><h2>My Groups</h2><button class="chip" style="color:var(--brand);background:var(--brand-bg);border-color:transparent">+ Create Group</button></div>
+      <button class="gbtn" onclick="openPulse()">The Velvet Tavern</button>
+      <button class="gbtn dim">CIMC</button>
+      <p class="hint">Demo. The heartbeat icon top left is where the globe was: it opens Pulse, the group's feed. Vouching lives under Contacts (bottom left).</p>
+    </div>
+    <div class="pane" id="paneContacts">
+      <div class="h2"><h2>Contacts</h2><button class="chip" style="color:var(--brand);background:var(--brand-bg);border-color:transparent">+ Meet</button></div>
+      <button class="web-card" onclick="openVouches()"><span class="faces" id="faces"></span><span class="t">Your web<small>Who vouched for who, all the way back to Philip</small></span><span style="color:var(--ink3)">›</span></button>
+      <div id="contactList"></div>
+      <p class="hint">Demo. Tap a person for their card and how they got in. "Your web" is the whole tree.</p>
+    </div>
   </div>
   <nav class="bar">
-    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.7-3.6 3.8-5.6 7.5-5.6s6.8 2 7.5 5.6"/></svg>Contacts</button>
+    <button id="tabContacts" onclick="showPane('Contacts')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.7-3.6 3.8-5.6 7.5-5.6s6.8 2 7.5 5.6"/></svg>Contacts</button>
     <button><span class="union"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span></button>
-    <button class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 19c.5-3 2.8-4.6 6-4.6s5.5 1.6 6 4.6M15.5 14.6c2.6.2 4.4 1.6 5 4.4"/></svg>Groups</button>
+    <button class="on" id="tabGroups" onclick="showPane('Groups')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 19c.5-3 2.8-4.6 6-4.6s5.5 1.6 6 4.6M15.5 14.6c2.6.2 4.4 1.6 5 4.4"/></svg>Groups</button>
   </nav>
 </div>
 
@@ -158,11 +172,6 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
     </div>
   </header>
   <div class="scroll">
-    <button class="vouch-link" onclick="openVouches()">
-      <span class="faces" id="faces"></span>
-      <span class="t"><b id="memberCount">12</b> members<small>See who vouched for who</small></span>
-      <span class="chev">›</span>
-    </button>
     <div id="feedWrap"></div>
   </div>
 </div>
@@ -171,13 +180,13 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 <div class="screen" id="vouches" style="z-index:12">
   <header class="head">
     <div class="head-row">
-      <button class="icon-btn ghost" onclick="closeVouches()"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Pulse</button>
-      <h1>Who vouched for who</h1>
+      <button class="icon-btn ghost" onclick="closeVouches()"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>Contacts</button>
+      <h1>Your web</h1>
       <span style="width:60px"></span>
     </div>
   </header>
   <div class="scroll" id="vscroll">
-    <p class="vcap">Everyone got in because a member vouched for them. Philip started the group. Tap a person to see their chain back to him.</p>
+    <p class="vcap">Everyone on Union got in because someone vouched for them. Philip started it. Tap a person to see their chain back to him.</p>
     <div class="chainbar" id="chainbar"><div class="empty">Tap a person below.</div></div>
     <ul class="vlist" id="vlist"></ul>
   </div>
@@ -242,20 +251,24 @@ function evHtml(e){
       <span class="ev-amt">${fmt(e.amt)}<small>tokens</small></span></button>
       <div class="ev-x"><div class="ev-xin"><span>From <b>${esc(byId[e.a].name)}</b></span><span>To <b>${esc(byId[e.b].name)}</b></span><span>Group fee <b>${fmt(fee)}</b></span><span>${esc(first(e.b))} received <b>${fmt(e.amt-fee)}</b></span><span class="mono">RECEIPT · ${when.toUpperCase()}</span></div></div>`; }
   if(e.t==='join'){ const nm=e.name||byId[e.a]?.name||'Someone';
-    return `<button class="ev-row" onclick="openSheet('${e.a}')"><span class="av solo">${esc(ini(nm))}</span><span class="ev-main"><div class="ev-t"><b>${esc(nm.split(' ')[0])}</b> joined the group</div><div class="ev-s">${esc(first(e.by))} vouched for ${esc(nm.split(' ')[0]==='June'?'her':'them')} · ${when}</div></span><span class="ev-amt plus">+1<small>member</small></span></button>`; }
+    return `<button class="ev-row" onclick="openSheet('${e.a}')"><span class="av solo">${esc(ini(nm))}</span><span class="ev-main"><div class="ev-t"><b>${esc(nm.split(' ')[0])}</b> joined the group</div><div class="ev-s">endorsed by ${esc(first(e.by))} and 3 others · ${when}</div></span><span class="ev-amt plus">+1<small>member</small></span></button>`; }
   if(e.t==='mint') return `<div class="ev-row"><span class="av solo mint">↓</span><span class="ev-main"><div class="ev-t">Daily income</div><div class="ev-s">${fmt(e.amt)} tokens to each of ${e.n} members · ${when}</div></span><span class="ev-amt plus">+${fmt(e.n*e.amt)}<small>tokens</small></span></div>`;
   if(e.t==='vote') return `<div class="ev-row"><span class="av solo vote">✓</span><span class="ev-main"><div class="ev-t">Daily income changed to <b>${esc(e.val)}</b></div><div class="ev-s">the group voted · ${when}</div></span></div>`;
   return '';
 }
 function renderFeed(){
   $('#feedWrap').innerHTML = days.map((d,i)=>`<div class="day">${esc(d.label)}${i===0?'<span>live</span>':''}</div><ul class="feed" id="feed${i}">${d.events.map(e=>`<li class="ev">${evHtml(e)}</li>`).join('')}</ul>`).join('');
-  $('#faces').innerHTML = ['philip','jane','ben','kaliya'].map(id=>avatarHtml(id)).join('');
 }
+function renderContacts(){
+  $('#faces').innerHTML = ['philip','jane','kaliya','mark'].map(id=>avatarHtml(id)).join('');
+  $('#contactList').innerHTML = P.filter(p=>p.id!=='jane').map(p=>`<button class="crow" onclick="openSheet('${p.id}')"><span class="av${p.sponsor?'':' root'}">${esc(ini(p.name))}</span><span><div class="n">${esc(p.name)}</div><div class="s">${p.sponsor?`vouched in by ${esc(first(p.sponsor))} · ${esc(p.since)}`:'started Union'}</div></span></button>`).join('');
+}
+function showPane(n){ ['Groups','Contacts'].forEach(x=>{ $('#pane'+x).classList.toggle('on',x===n); $('#tab'+x).classList.toggle('on',x===n); }); }
 function addEvent(e){ const li=document.createElement('li'); li.className='ev in'; li.innerHTML=evHtml(e); $('#feed0').prepend(li); days[0].events.unshift(e); }
 let ticking=false;
 function startTicker(){ if(ticking) return; ticking=true; let i=0;
   const tick=()=>{ if(i>=incoming.length) return; const e=incoming[i++];
-    if(e.t==='join'&&e.name){ P.push({id:e.a,name:e.name,sponsor:e.by,since:'now'}); byId[e.a]=P[P.length-1]; NEWEST=e.a; $('#memberCount').textContent=P.length; }
+    if(e.t==='join'&&e.name){ P.push({id:e.a,name:e.name,sponsor:e.by,since:'now'}); byId[e.a]=P[P.length-1]; NEWEST=e.a; renderContacts(); }
     addEvent(e); setTimeout(tick,5000+Math.random()*2500); };
   setTimeout(tick,3500); }
 
@@ -275,7 +288,7 @@ function openSheet(id){
     ${chainHtml(c)}
     <div class="sh-note">${c.length-1===0?'Philip started the group.':`${c.length-1} ${c.length-1===1?'vouch':'vouches'} between Philip and ${esc(first(id))}.`} ${n?`${esc(first(id))} has vouched for ${n} ${n===1?'person':'people'}.`:`${esc(first(id))} hasn’t vouched for anyone yet.`}</div>
     <button class="sh-btn" onclick="closeSheet(); toast('Demo: this would open Pay with ${esc(first(id))} filled in')">Pay ${esc(first(id))}</button>
-    <button class="sh-btn ghost" onclick="closeSheet(); openVouches('${id}')">See everyone</button>`;
+    <button class="sh-btn ghost" onclick="closeSheet(); openVouches('${id}')">See in your web</button>`;
   $('#scrim').classList.add('on'); const sh=$('#sheet'); sh.classList.remove('on','anim'); void sh.offsetWidth; sh.classList.add('on','anim');
 }
 function closeSheet(){ $('#scrim').classList.remove('on'); $('#sheet').classList.remove('on'); }
@@ -283,7 +296,7 @@ function closeSheet(){ $('#scrim').classList.remove('on'); $('#sheet').classList
 // ---- vouches: a plain indented list, chain pinned on top when you tap ----
 function renderVouches(){
   const gen=id=>chainOf(id).length-1;
-  const node=p=>{ const ks=kids(p.id); return `<li data-id="${p.id}"><button class="vn" onclick="focusV('${p.id}')"><span class="av${p.sponsor?'':' root'}${p.id===NEWEST?' newest':''}">${esc(ini(p.name))}</span><span><div class="n">${esc(p.name)}</div><div class="s">${p.sponsor?`vouched in by ${esc(first(p.sponsor))}, ${esc(p.since)}`:'started the group'}${ks.length?` · vouched for ${ks.length}`:''}</div></span></button>${ks.length?`<ul>${ks.map(node).join('')}</ul>`:''}</li>`; };
+  const node=p=>{ const ks=kids(p.id); return `<li data-id="${p.id}"><button class="vn" onclick="focusV('${p.id}')"><span class="av${p.sponsor?'':' root'}${p.id===NEWEST?' newest':''}">${esc(ini(p.name))}</span><span><div class="n">${esc(p.name)}</div><div class="s">${p.sponsor?`vouched in by ${esc(first(p.sponsor))}, ${esc(p.since)}`:'started Union'}${ks.length?` · vouched for ${ks.length}`:''}</div></span></button>${ks.length?`<ul>${ks.map(node).join('')}</ul>`:''}</li>`; };
   $('#vlist').innerHTML=node(byId.philip);
   $('#chainbar').innerHTML='<div class="empty">Tap a person below.</div>';
   $('#vlist').classList.remove('focus'); vFocus=null;
@@ -296,7 +309,7 @@ function focusV(id){ const t=$('#vlist'); t.querySelectorAll('.lit,.sel').forEac
   const cb=$('#chainbar'); cb.innerHTML=`<div class="card anim"><div class="chain-h">${c.length>1?`How ${esc(first(id))} got in`:'Where the group starts'}</div>${chainHtml(c)}</div>`;
 }
 function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2200); }
-renderFeed();
+renderFeed(); renderContacts();
 </script>
 </body>
 </html>
