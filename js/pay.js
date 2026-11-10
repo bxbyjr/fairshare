@@ -86,7 +86,7 @@ function payInitials(name) {
 function payReceiptHtml(o) {
     // o: { who, group:{name,sym,cur}, memo, amount, fee, paid, when }
     const feeLine = o.fee > 0 ? `<div class="pay-r-li pay-r-fee"><span>Group fee</span><b>${esc(payFmt(o.fee))}</b></div>` : '';
-    return `<div class="pay-receipt">
+    return `<div class="pay-receipt${o.paid ? ' is-paid' : ''}">
         <div class="pay-r-h">${esc((o.group.name || '').toUpperCase())}</div>
         <div class="pay-r-when">${esc(payStamp(o.when || new Date()))}</div>
         <div class="pay-r-av">${esc(payInitials(o.who))}</div>
