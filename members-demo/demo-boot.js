@@ -19,6 +19,13 @@
   };
   window.openDirectMessageScreen = () => showToast('Demo: this would open your chat with them', 'info');
   window.openContactDetailsById = () => showToast('Demo: this would open their contact card', 'info');
+  // The real Pay screen asks for the camera first. In the demo skip straight in so the row under it shows.
+  const _compose = window.openPayCompose;
+  window.openPayCompose = async function (direction) {
+    const orig = navigator.mediaDevices?.getUserMedia;
+    try { if (navigator.mediaDevices) navigator.mediaDevices.getUserMedia = () => Promise.reject(new Error('demo')); await _compose(direction); }
+    finally { if (navigator.mediaDevices && orig) navigator.mediaDevices.getUserMedia = orig; }
+  };
   // Hide the demo pill while the pay screen is up; it sat on top of the Paying badge.
   const _show = window.payShowView, _close = window.closePayFlow;
   window.payShowView = function (v) { _show(v); document.getElementById('demoBar')?.classList.add('hidden'); };
@@ -33,7 +40,8 @@
     document.title = 'Union demo: removal votes';
     selectedGroup = { id: 'g1', name: 'CIMC', currency_symbol: '$', currency_name: 'credits', currency_enabled: true, created_by: 'u1',
       constitution: 'Admission: 60% members $NEW_MEMBER_PERCENTAGE. Votes last 7 days $VOTING_PERIOD_DAYS.' };
-    myGroups = [{ group_id: 'g1', status: 'active', balance: d.state.balance, groups: selectedGroup }];
+    const tavern = { id: 'g2', name: 'The Velvet Tavern', currency_symbol: '🍺', currency_name: 'tokens', currency_enabled: true, created_by: 'u1', constitution: '' };
+    myGroups = [{ group_id: 'g1', status: 'active', balance: d.state.balance, groups: selectedGroup }, { group_id: 'g2', status: 'active', balance: 20, groups: tavern }];
     window.loadMyGroups = async () => { myGroups[0].balance = d.state.balance; };
     activeTab = 'members';
     ['loadingScreen', 'authScreen', 'contactsScreen', 'profileScreen', 'contactDetailsScreen', 'directMessageScreen', 'globeScreen', 'groupList'].forEach(id => document.getElementById(id)?.classList.add('hidden'));

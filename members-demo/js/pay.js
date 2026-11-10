@@ -47,7 +47,11 @@ function payGroups() {
         .map(m => ({ id: m.group_id, name: m.groups.name, sym: m.groups.currency_symbol,
                      cur: m.groups.currency_name, bal: Number(m.balance || 0) }));
     const funded = all.filter(g => g.bal > 0);
-    return (funded.length ? funded : all).sort((a, b) => b.bal - a.bal || a.name.localeCompare(b.name));
+    let out = (funded.length ? funded : all);
+    // Paying someone you picked: only the groups you share with them.
+    const only = payState.toPerson?.groups;
+    if (only && only.length) out = out.filter(g => only.includes(g.id));
+    return out.sort((a, b) => b.bal - a.bal || a.name.localeCompare(b.name));
 }
 function payActiveGroup() {
     const gs = payGroups();
@@ -166,6 +170,7 @@ async function openPayCompose(direction) {
     payRenderGroup();
     payRenderAmount();
     payRenderRecipient();
+    payRenderPeople();
 
     const video = document.getElementById('payVideo');
     const hint = document.getElementById('payCamHint');
@@ -183,18 +188,21 @@ async function openPayCompose(direction) {
 }
 // Paying someone you already know: same screen, their name where the camera
 // would be. No code, no scanning. The group is the one you opened them from.
-async function openPayToPerson(userId, name, groupId, avatarUrl) {
+// groupIds (optional): every currency group you share with them. One group: the chip
+// is locked. Several: the chip stays live but only offers those.
+async function openPayToPerson(userId, name, groupId, avatarUrl, groupIds) {
+    payState.toPerson = null;
     const groups = payGroups();
-    const g = groups.find(x => x.id === groupId);
-    if (!g) { showToast('That group does not use currency', 'error'); return; }
+    const shared = (groupIds && groupIds.length ? groupIds : [groupId]).filter(id => groups.some(x => x.id === id));
+    if (!shared.length) { showToast('You do not share a currency group with them', 'error'); return; }
     if (userId === currentUser?.id) return;
     payStopCamera();
     payState.direction = 'pay';
     payState.amountStr = '';
     payState.scanHandled = true;          // nothing to scan
     payState.pending = null; payState.pendingToken = null;
-    payState.groupId = groupId;
-    payState.toPerson = { id: userId, name: name || 'Member', avatar: avatarUrl || null };
+    payState.toPerson = { id: userId, name: name || 'Member', avatar: avatarUrl || null, groups: shared };
+    payState.groupId = shared.includes(groupId) ? groupId : payGroups()[0].id;
 
     document.getElementById('payMemo').value = '';
     payShowView('compose');
@@ -215,9 +223,11 @@ function payRenderRecipient() {
         wrap.parentNode.insertBefore(to, wrap);
     }
     const person = !!p;
+    const people = document.getElementById('payPeople');
     wrap.classList.toggle('hidden', person);
     if (or) or.classList.toggle('hidden', person);
     if (paste) paste.classList.toggle('hidden', person);
+    if (people) people.classList.toggle('hidden', person);
     to.classList.toggle('hidden', !person);
     if (!person) return;
     const initial = esc((p.name || '?').charAt(0).toUpperCase());
@@ -225,9 +235,8 @@ function payRenderRecipient() {
         <div class="pay-to-label">To</div>
         ${p.avatar ? `<img class="pay-to-avatar" src="${esc(p.avatar)}" alt="">` : `<div class="pay-to-avatar ph">${initial}</div>`}
         <div class="pay-to-name">${esc(p.name)}</div>`;
-    // One group only: the one you opened them from.
-    const chip = document.getElementById('payGroupChip');
-    chip.disabled = true; chip.classList.remove('many');
+    // Several shared groups: the chip offers just those. One: it is locked.
+    payRenderGroup();
 }
 function payGoPressed() {
     if (payState.toPerson) return payPersonReview();
@@ -314,6 +323,101 @@ function payKey(k) {
     }
     payState.amountStr = s;
     payRenderAmount();
+}
+
+// ---------------------------------------------------------------------------
+// Paying someone you know: the row under the camera and the picker sheet.
+// Who counts: anyone in a currency group you are in. Recents come from your
+// own outgoing transactions. Request stays code-only for now (needs a backend).
+// ---------------------------------------------------------------------------
+function payAvatarHtml(p, cls) {
+    return p.avatar ? `<img class="${cls}" src="${esc(p.avatar)}" alt="">`
+                    : `<span class="${cls} ph">${esc(payInitials(p.name))}</span>`;
+}
+async function payRecentPeople(limit) {
+    const ids = payGroups().map(g => g.id);
+    if (!ids.length || !currentUser) return [];
+    try {
+        const { data } = await db.from('transactions')
+            .select('to_user, group_id, created_at, receiver:profiles!transactions_to_user_fkey(display_name, profile_image_url)')
+            .eq('from_user', currentUser.id).in('group_id', ids)
+            .order('created_at', { ascending: false }).limit(40);
+        const seen = new Set(), out = [];
+        for (const t of (data || [])) {
+            if (!t.to_user || seen.has(t.to_user)) continue;
+            seen.add(t.to_user);
+            out.push({ id: t.to_user, name: t.receiver?.display_name || 'Member', avatar: t.receiver?.profile_image_url || null, groupId: t.group_id });
+            if (out.length >= (limit || 4)) break;
+        }
+        return out;
+    } catch (_) { return []; }
+}
+async function payKnownPeople() {
+    const groups = payGroups();
+    const ids = groups.map(g => g.id);
+    if (!ids.length) return [];
+    const { data } = await db.from('members')
+        .select('user_id, group_id, status, profiles(display_name, profile_image_url)')
+        .in('group_id', ids).eq('status', 'active');
+    const byId = new Map();
+    for (const m of (data || [])) {
+        if (!m.user_id || m.user_id === currentUser?.id || !ids.includes(m.group_id)) continue;
+        let p = byId.get(m.user_id);
+        if (!p) { p = { id: m.user_id, name: m.profiles?.display_name || 'Member', avatar: m.profiles?.profile_image_url || null, groups: [] }; byId.set(m.user_id, p); }
+        if (!p.groups.includes(m.group_id)) p.groups.push(m.group_id);
+    }
+    return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+async function payRenderPeople() {
+    const row = document.getElementById('payPeople');
+    if (!row) return;
+    if (payState.direction !== 'pay' || payState.toPerson) { row.classList.add('hidden'); return; }
+    row.classList.remove('hidden');
+    row.innerHTML = `<button type="button" class="pay-pp pick" onclick="openPayPeople()"><span class="pay-pp-av">${PAY_ICON_PERSON}</span><span class="pay-pp-n">Someone<br>you know</span></button>`;
+    const recent = await payRecentPeople(4);
+    if (payState.toPerson || payState.view !== 'compose') return;
+    row.insertAdjacentHTML('beforeend', recent.map(p => `
+        <button type="button" class="pay-pp" onclick="pickPayPerson('${esc(p.id)}')" title="${esc(p.name)}">
+            ${payAvatarHtml(p, 'pay-pp-av')}<span class="pay-pp-n">${esc(p.name.split(' ')[0])}</span>
+        </button>`).join(''));
+}
+let payPeopleCache = [];
+async function openPayPeople() {
+    const sh = document.getElementById('payPeopleSheet');
+    const list = document.getElementById('payPeopleList');
+    list.innerHTML = '<div class="pay-pempty">Loading…</div>';
+    sh.classList.remove('hidden'); sh.setAttribute('aria-hidden', 'false');
+    const q = document.getElementById('payPeopleQ'); q.value = '';
+    payPeopleCache = await payKnownPeople();
+    payFilterPeople();
+    setTimeout(() => q.focus(), 60);
+}
+function payFilterPeople() {
+    const q = (document.getElementById('payPeopleQ').value || '').trim().toLowerCase();
+    const groups = payGroups();
+    const gname = id => groups.find(g => g.id === id)?.name || '';
+    const list = document.getElementById('payPeopleList');
+    const hits = payPeopleCache.filter(p => !q || p.name.toLowerCase().includes(q));
+    if (!hits.length) { list.innerHTML = `<div class="pay-pempty">${q ? 'No one by that name in your groups' : 'No one to pay yet'}</div>`; return; }
+    list.innerHTML = hits.map(p => `
+        <button type="button" class="pay-grow" onclick="pickPayPerson('${esc(p.id)}')">
+            ${payAvatarHtml(p, 'pay-pav')}
+            <span class="gm"><b>${esc(p.name)}</b><span>${esc(p.groups.map(gname).filter(Boolean).join(' · '))}</span></span>
+        </button>`).join('');
+}
+function closePayPeople() {
+    const sh = document.getElementById('payPeopleSheet');
+    sh.classList.add('hidden'); sh.setAttribute('aria-hidden', 'true');
+}
+async function pickPayPerson(userId) {
+    let p = payPeopleCache.find(x => x.id === userId);
+    if (!p) { payPeopleCache = await payKnownPeople(); p = payPeopleCache.find(x => x.id === userId); }
+    if (!p) { showToast('They are not in a currency group with you any more', 'error'); return; }
+    closePayPeople();
+    payHaptic('pick');
+    // Prefer the group already showing if you share it, else the shared one with the most balance.
+    const first = p.groups.includes(payState.groupId) ? payState.groupId : p.groups[0];
+    openPayToPerson(p.id, p.name, first, p.avatar, p.groups);
 }
 
 // Group picker (bottom sheet)
@@ -548,7 +652,7 @@ function closePayFlow() {
     if (payState.unwatch) { payState.unwatch(); payState.unwatch = null; }
     payState.view = null; payState.scanHandled = false; payState.pending = null; payState.pendingToken = null;
     payState.toPerson = null;
-    closePayGroups();
+    closePayGroups(); closePayPeople();
     document.getElementById('payOverlay').classList.add('hidden');
 }
 
@@ -572,7 +676,7 @@ function payConsumeDeepLink() {
     }, 500);
 }
 document.addEventListener('DOMContentLoaded', payConsumeDeepLink);
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeUnionFan(); closePayGroups(); } });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeUnionFan(); closePayGroups(); closePayPeople(); } });
 document.addEventListener('visibilitychange', () => {
     if (document.hidden) payStopCamera();
     else if (payState.view === 'compose' && !payState.scanHandled) openPayComposeCameraOnly();
@@ -590,4 +694,5 @@ async function openPayComposeCameraOnly() {
 const PAY_ICON_UP    = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
 const PAY_ICON_DOWN  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7"/></svg>';
 const PAY_ICON_CHEV  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+const PAY_ICON_PERSON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.7-3.6 3.8-5.6 7.5-5.6s6.8 2 7.5 5.6"/></svg>';
 const PAY_ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
