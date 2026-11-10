@@ -5544,7 +5544,7 @@ body.oauth-apple-on .btn-oauth-apple { display: flex; }
 .pay-wait { text-align: center; color: rgba(255,255,255,.72); font-size: 14px; margin-top: 16px; }
 
 /* receipt (Figma: One screen, both ways > A5 Jane's copy) */
-.pay-receipt { position: relative; background: #fff; width: 270px; margin: 12px auto 4px; padding: 26px 14px 14px; border-radius: 0; flex: none;
+.pay-receipt { position: relative; background: #fff; width: 270px; margin: 12px auto 4px; padding: 26px 14px 54px; border-radius: 0; flex: none;
     color: var(--pay-ink); animation: payCardIn .3s var(--pay-out) both;
     filter: drop-shadow(-20px 20px 40px rgba(0,0,0,.10)); }
 /* sawtooth bottom edge: 15px teeth, 4px deep, same as the Figma vector */
@@ -5558,6 +5558,7 @@ body.oauth-apple-on .btn-oauth-apple { display: flex; }
 .pay-r-name { text-align: center; font-size: 15px; line-height: 22px; font-weight: 600; margin-top: 8px; }
 .pay-r-rule { height: 1px; background: var(--pay-border); margin: 24px 0 20px; }
 .pay-r-rule.paid { margin: 10px 0 12px; }
+.pay-receipt.is-paid { padding-bottom: 24px; }
 .pay-r-li { display: flex; justify-content: space-between; gap: 12px; font-size: 15px; line-height: 22px; }
 .pay-r-li b { font-weight: 600; }
 .pay-r-li + .pay-r-rule { margin-top: 20px; }
