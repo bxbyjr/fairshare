@@ -98,6 +98,7 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .chain .p{display:flex;flex-direction:column;align-items:center;gap:5px;flex:none;width:64px;opacity:0;transform:scale(.6)}
 .chain .p .av{width:40px;height:40px;font-size:13px}
 .chain .p span{font-size:11px;color:var(--ink2);white-space:nowrap}
+.chain.long .p{width:52px} .chain.long .l{width:16px} .chain.long .p .av{width:36px;height:36px;font-size:12px}
 .chain .l{flex:none;width:30px;height:2px;background:var(--rule);position:relative;margin-bottom:18px;overflow:hidden}
 .chain .l:after{content:'';position:absolute;inset:0;background:var(--brand);transform:scaleX(0);transform-origin:left}
 .anim .chain .p{animation:pop .4s var(--ease) forwards} .anim .chain .l:after{animation:grow .3s var(--ease) forwards}
@@ -107,6 +108,16 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .sh-btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line);margin-top:10px}
 
 /* vouches screen */
+.vsearch{display:flex;align-items:center;gap:10px;margin:14px 14px 4px;padding:0 14px;height:46px;background:#fff;border:1px solid var(--line);border-radius:12px;color:var(--ink3)}
+.vsearch svg{width:18px;height:18px;flex:none} .vsearch input{flex:1;border:0;outline:0;font:inherit;font-size:16px;color:var(--ink);background:none;min-width:0}
+.vsec{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink2);font-weight:600;margin:18px 20px 8px}
+.card-plain{background:#fff;border:1px solid var(--rule);border-radius:14px;margin:0 14px;padding:8px 12px 4px}
+.vmore{display:block;width:calc(100% - 28px);margin:14px 14px 0;padding:13px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:600;font-size:14px;color:var(--brand)}
+.res{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 12px;background:#fff;border:1px solid var(--rule);border-radius:14px;margin:0 14px 8px;width:calc(100% - 28px)}
+.res .av{width:38px;height:38px;font-size:12px} .res .n{font-weight:600;font-size:15px} .res .s{font-size:12.5px;color:var(--ink2)}
+.vempty{margin:20px;font-size:13px;color:var(--ink3);text-align:center}
+.me-tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.04em;background:var(--brand);color:#fff;border-radius:999px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+.chain .p .av.meet{box-shadow:0 0 0 3px var(--brand-bg)}
 .vcap{font-size:13px;color:var(--ink2);margin:14px 20px 4px;line-height:1.5}
 .chainbar{position:sticky;top:0;background:var(--bg);padding:10px 14px 8px;z-index:2;min-height:96px}
 .chainbar .card{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:10px 12px 6px}
@@ -186,9 +197,16 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
     </div>
   </header>
   <div class="scroll" id="vscroll">
-    <p class="vcap">Everyone on Union got in because someone vouched for them. Philip started it. Tap a person to see their chain back to him.</p>
-    <div class="chainbar" id="chainbar"><div class="empty">Tap a person below.</div></div>
-    <ul class="vlist" id="vlist"></ul>
+    <div class="vsearch"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="vq" type="search" placeholder="Find anyone on Union" autocomplete="off" oninput="vSearch()"></div>
+    <div id="vresults"></div>
+    <div id="vhome">
+      <div class="vsec">Above you</div>
+      <div class="card-plain" id="vabove"></div>
+      <div class="vsec">You vouched for</div>
+      <ul class="vlist" id="vmine"></ul>
+      <button class="vmore" id="vmore" onclick="toggleAll()">Show everyone on Union (<span id="vcount"></span>)</button>
+      <ul class="vlist" id="vall" style="display:none"></ul>
+    </div>
   </div>
 </div>
 
@@ -281,33 +299,47 @@ function closeVouches(){ $('#vouches').classList.remove('on'); }
 // ---- member sheet with chain ----
 function chainHtml(c){ return `<div class="chain">${c.map((x,i)=>`${i?`<span class="l" style="animation-delay:${i*0.14}s"></span>`:''}<span class="p" style="animation-delay:${i*0.14+0.05}s"><span class="av${i?'':' root'}">${esc(ini(byId[x].name))}</span><span>${esc(first(x))}</span></span>`).join('')}</div>`; }
 function openSheet(id){
-  const p=byId[id]; if(!p) return; const c=chainOf(id); const n=kids(id).length;
+  const p=byId[id]; if(!p) return; const n=kids(id).length;
+  let title, chain, note;
+  if(id===ME){ const c=chainOf(ME); title='How you got in'; chain=chainHtml2(c); note=`${c.length-1} vouches between Philip and you.`; }
+  else { const pb=pathBetween(ME,id); title=`You and ${esc(first(id))}`; chain=chainHtml2(pb.path,{meet:pb.meet});
+    if(pb.up===0) note=`${esc(first(id))} is ${pb.down===1?'someone you vouched for':`${pb.down} vouches below you`}.`;
+    else if(pb.down===0) note=`${esc(first(id))} is ${pb.up===1?'the person who vouched you in':`${pb.up} vouches above you`}.`;
+    else note=`You meet at <b>${esc(first(pb.meet))}</b>: ${pb.up} ${pb.up===1?'vouch':'vouches'} up from you, ${pb.down} down to ${esc(first(id))}.`; }
   $('#sheet').innerHTML=`<div class="grab"></div>
-    <div class="sh-head"><span class="av${p.sponsor?'':' root'}">${esc(ini(p.name))}</span><div><div class="sh-name">${esc(p.name)}</div><div class="sh-sub">${p.sponsor?`${esc(first(p.sponsor))} vouched for ${esc(first(id))} · ${esc(p.since)}`:`Started the group · ${esc(p.since)}`}</div></div></div>
-    <div class="chain-h">${p.sponsor?`How ${esc(first(id))} got in`:'Where the group starts'}</div>
-    ${chainHtml(c)}
-    <div class="sh-note">${c.length-1===0?'Philip started the group.':`${c.length-1} ${c.length-1===1?'vouch':'vouches'} between Philip and ${esc(first(id))}.`} ${n?`${esc(first(id))} has vouched for ${n} ${n===1?'person':'people'}.`:`${esc(first(id))} hasn’t vouched for anyone yet.`}</div>
-    <button class="sh-btn" onclick="closeSheet(); toast('Demo: this would open Pay with ${esc(first(id))} filled in')">Pay ${esc(first(id))}</button>
-    <button class="sh-btn ghost" onclick="closeSheet(); openVouches('${id}')">See in your web</button>`;
+    <div class="sh-head"><span class="av${p.sponsor?'':' root'}">${esc(ini(p.name))}</span><div><div class="sh-name">${esc(p.name)}${id===ME?'<span class="me-tag">YOU</span>':''}</div><div class="sh-sub">${p.sponsor?`Vouched in by ${esc(first(p.sponsor))} · ${esc(p.since)}`:`Started Union · ${esc(p.since)}`}${n?` · vouched for ${n}`:''}</div></div></div>
+    <div class="chain-h">${title}</div>
+    ${chain}
+    <div class="sh-note">${note}</div>
+    ${id!==ME?`<button class="sh-btn" onclick="closeSheet(); toast('Demo: this would open Pay with ${esc(first(id))} filled in')">Pay ${esc(first(id))}</button>`:''}
+    <button class="sh-btn ghost" onclick="closeSheet(); openVouches('${id}')">${id===ME?'Open your web':'Find in your web'}</button>`;
   $('#scrim').classList.add('on'); const sh=$('#sheet'); sh.classList.remove('on','anim'); void sh.offsetWidth; sh.classList.add('on','anim');
 }
 function closeSheet(){ $('#scrim').classList.remove('on'); $('#sheet').classList.remove('on'); }
 
-// ---- vouches: a plain indented list, chain pinned on top when you tap ----
+// ---- vouches: your neighbourhood by default, search for everyone else ----
+const ME='jane';
+function pathBetween(a,b){ // up from a to the meeting point, then down to b
+  const ca=chainOf(a), cb=chainOf(b); let i=0; while(i<ca.length&&i<cb.length&&ca[i]===cb[i]) i++; const lca=ca[i-1];
+  const up=ca.slice(i-1).reverse(); const down=cb.slice(i); return {path:up.concat(down), meet:lca, up:up.length-1, down:down.length};
+}
+function chainHtml2(ids,opts){ opts=opts||{}; return `<div class="chain${ids.length>4?' long':''}">${ids.map((x,i)=>`${i?`<span class="l" style="animation-delay:${i*0.14}s"></span>`:''}<span class="p" style="animation-delay:${i*0.14+0.05}s"><span class="av${x==='philip'?' root':''}${x===opts.meet&&x!=='philip'?' meet':''}">${esc(ini(byId[x].name))}</span><span>${x===ME?'you':esc(first(x))}</span></span>`).join('')}</div>`; }
+function rowHtml(p,extra){ return `<button class="res" onclick="openSheet('${p.id}')"><span class="av${p.sponsor?'':' root'}${p.id===NEWEST?' newest':''}">${esc(ini(p.name))}</span><span><div class="n">${esc(p.name)}${p.id===ME?'<span class="me-tag">YOU</span>':''}</div><div class="s">${extra}</div></span></button>`; }
+function branchHtml(id,depth){ const ks=kids(id); if(!ks.length) return ''; return `<ul>${ks.map(k=>`<li><button class="vn" onclick="openSheet('${k.id}')"><span class="av${k.id===NEWEST?' newest':''}">${esc(ini(k.name))}</span><span><div class="n">${esc(k.name)}</div><div class="s">${esc(k.since)}${kids(k.id).length?` · vouched for ${kids(k.id).length}`:''}</div></span></button>${depth<1?branchHtml(k.id,depth+1):(kids(k.id).length?`<ul><li><button class="vn" onclick="openSheet('${k.id}')"><span class="s" style="padding:4px 0">+ ${kids(k.id).length} more under ${esc(first(k.id))}</span></button></li></ul>`:'')}</li>`).join('')}</ul>`; }
 function renderVouches(){
-  const gen=id=>chainOf(id).length-1;
-  const node=p=>{ const ks=kids(p.id); return `<li data-id="${p.id}"><button class="vn" onclick="focusV('${p.id}')"><span class="av${p.sponsor?'':' root'}${p.id===NEWEST?' newest':''}">${esc(ini(p.name))}</span><span><div class="n">${esc(p.name)}</div><div class="s">${p.sponsor?`vouched in by ${esc(first(p.sponsor))}, ${esc(p.since)}`:'started Union'}${ks.length?` · vouched for ${ks.length}`:''}</div></span></button>${ks.length?`<ul>${ks.map(node).join('')}</ul>`:''}</li>`; };
-  $('#vlist').innerHTML=node(byId.philip);
-  $('#chainbar').innerHTML='<div class="empty">Tap a person below.</div>';
-  $('#vlist').classList.remove('focus'); vFocus=null;
+  const above=chainOf(ME);
+  $('#vabove').innerHTML=`<div class="anim">${chainHtml2(above)}</div><div class="sh-note" style="margin:0 0 8px">${above.length-1} ${above.length-1===1?'vouch':'vouches'} between Philip and you. ${esc(first(byId[ME].sponsor))} vouched you in.</div>`;
+  $('#vmine').innerHTML=`<li>${branchHtml(ME,0)}</li>`;
+  $('#vcount').textContent=P.length;
+  $('#vall').innerHTML=P.map(p=>rowHtml(p,p.sponsor?`vouched in by ${esc(first(p.sponsor))} · ${esc(p.since)}`:'started Union')).join('');
+  $('#vq').value=''; vSearch();
 }
-let vFocus=null;
-function focusV(id){ const t=$('#vlist'); t.querySelectorAll('.lit,.sel').forEach(e=>e.classList.remove('lit','sel'));
-  if(vFocus===id){ t.classList.remove('focus'); vFocus=null; $('#chainbar').innerHTML='<div class="empty">Tap a person below.</div>'; return; }
-  vFocus=id; t.classList.add('focus'); const c=chainOf(id);
-  c.forEach(x=>t.querySelector(`li[data-id="${x}"]`).classList.add('lit')); t.querySelector(`li[data-id="${id}"]`).classList.add('sel');
-  const cb=$('#chainbar'); cb.innerHTML=`<div class="card anim"><div class="chain-h">${c.length>1?`How ${esc(first(id))} got in`:'Where the group starts'}</div>${chainHtml(c)}</div>`;
-}
+function toggleAll(){ const a=$('#vall'); const open=a.style.display==='none'; a.style.display=open?'block':'none'; $('#vmore').textContent=open?'Hide everyone':`Show everyone on Union (${P.length})`; }
+function vSearch(){ const q=($('#vq').value||'').trim().toLowerCase(); const r=$('#vresults'); $('#vhome').style.display=q?'none':'block';
+  if(!q){ r.innerHTML=''; return; }
+  const hits=P.filter(p=>p.name.toLowerCase().includes(q)&&p.id!==ME);
+  r.innerHTML=hits.length?hits.map(p=>{ const pb=pathBetween(ME,p.id); const via=pb.path.slice(1,-1).map(x=>x===ME?'you':first(x)).join(' › '); return rowHtml(p,`${pb.path.length-1} ${pb.path.length-1===1?'vouch':'vouches'} from you${via?` · via ${esc(via)}`:''}`); }).join(''):`<div class="vempty">No one called “${esc(q)}” on Union yet.</div>`; }
+function openVouches(id){ renderVouches(); $('#vouches').classList.add('on'); if(id&&id!==ME){ $('#vq').value=first(id); vSearch(); } }
 function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2200); }
 renderFeed(); renderContacts();
 </script>
