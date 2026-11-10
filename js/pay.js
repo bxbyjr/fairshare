@@ -74,22 +74,29 @@ function payStamp(d) {
     const dd = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], mm = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     let h = d.getHours(); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
     const m = String(d.getMinutes()).padStart(2, '0');
-    return `${dd[d.getDay()]}, ${mm[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}  ·  ${h}:${m} ${ap}`;
+    return `${dd[d.getDay()]}, ${mm[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()} • ${h}:${m} ${ap}`;
 }
+function payInitials(name) {
+    return (name || '').trim().split(/\s+/).slice(0, 2).map(w => w.charAt(0).toUpperCase()).join('') || '?';
+}
+// The receipt slip, as drawn in Figma ("One screen, both ways" > A5/B5):
+// group name, monospace timestamp, initials avatar, name, one line per item,
+// TOTAL with the currency *name*, and PAID printed in the footer. No symbol;
+// the currency name carries that.
 function payReceiptHtml(o) {
     // o: { who, group:{name,sym,cur}, memo, amount, fee, paid, when }
-    const feeLine = o.fee > 0 ? `<div class="pay-r-li pay-r-fee"><span>Group fee</span><b>${payMoneyHtml(o.fee, o.group.sym)}</b></div>` : '';
+    const feeLine = o.fee > 0 ? `<div class="pay-r-li pay-r-fee"><span>Group fee</span><b>${esc(payFmt(o.fee))}</b></div>` : '';
     return `<div class="pay-receipt">
         <div class="pay-r-h">${esc((o.group.name || '').toUpperCase())}</div>
         <div class="pay-r-when">${esc(payStamp(o.when || new Date()))}</div>
+        <div class="pay-r-av">${esc(payInitials(o.who))}</div>
         <div class="pay-r-name">${esc(o.who)}</div>
         <div class="pay-r-rule"></div>
-        <div class="pay-r-li"><span>${esc(o.memo || 'No description')}</span><b>${payMoneyHtml(o.amount, o.group.sym)}</b></div>
+        <div class="pay-r-li"><span>${esc(o.memo || 'No description')}</span><b>${esc(payFmt(o.amount))}</b></div>
         ${feeLine}
         <div class="pay-r-rule"></div>
-        <div class="pay-r-tot"><span class="l">TOTAL</span><span class="r">${payMoneyHtml(o.amount, o.group.sym)}</span></div>
-        <div class="pay-r-cur">${esc(o.group.cur || '')}</div>
-        ${o.paid ? '<div class="pay-r-dash"></div><div class="pay-r-paid">PAID</div>' : ''}
+        <div class="pay-r-tot"><span class="l">TOTAL</span><span class="r">${esc(payFmt(o.amount))} ${esc(o.group.cur || '')}</span></div>
+        ${o.paid ? '<div class="pay-r-rule paid"></div><div class="pay-r-paid">PAID</div>' : ''}
     </div>`;
 }
 
