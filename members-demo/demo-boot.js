@@ -7,14 +7,16 @@
     document.getElementById('demoWho').textContent = currentProfile.display_name;
   }
   async function render() {
-    await renderMembersTab();
+    if (activeTab === 'money') await renderMoneyTab();
+    else if (activeTab === 'governance') await renderGovernanceTab();
+    else await renderMembersTab();
     if (typeof refreshLucideIcons === 'function') refreshLucideIcons();
   }
   window.demoSwitch = async function (id) {
     d.state.me = id; applyUser(); closeDemoMenu(); await render();
   };
   window.demoReset = async function () {
-    d.state.proposals.length = 0; d.members.forEach(m => m.status = 'active'); closeDemoMenu(); await render();
+    d.state.proposals.length = 0; d.state.dprops.length = 0; d.state.delegates.length = 0; d.state.fee = 0.02; d.state.income = 1; d.members.forEach(m => m.status = 'active'); closeDemoMenu(); await render();
     showToast('Demo reset', 'info');
   };
   window.openDirectMessageScreen = () => showToast('Demo: this would open your chat with them', 'info');
@@ -26,6 +28,25 @@
     try { if (navigator.mediaDevices) navigator.mediaDevices.getUserMedia = () => Promise.reject(new Error('demo')); await _compose(direction); }
     finally { if (navigator.mediaDevices && orig) navigator.mediaDevices.getUserMedia = orig; }
   };
+  // Demo versions of the Money and Governance tabs: just the parts delegates touch.
+  window.ensureVotingFinalized = async () => {};
+  window.ensureSession = async () => true;
+  window.renderMoneyTab = async function () {
+    selectedGroup.fee_rate = d.state.fee; selectedGroup.daily_income = d.state.income;
+    await loadDelegates();
+    document.getElementById('tabContent').innerHTML = `
+      <div class="group-info-bar">
+        <div class="info-item"><div class="info-label">Your Balance</div><div class="info-value">${selectedGroup.currency_symbol} ${Number(d.state.balance).toFixed(2)}</div></div>
+        ${moneyPolicyCellsHtml(null, null)}
+      </div>
+      <p style="color:var(--dark-gray);font-size:.85rem;">Demo: the rest of the Money tab (send, history) is unchanged and left out here.</p>`;
+  };
+  window.renderGovernanceTab = async function () {
+    await loadDelegates();
+    document.getElementById('tabContent').innerHTML = whoDecidesHtml() +
+      `<h4 style="color:var(--accent-color);margin-bottom:0.5rem;">Constitution</h4><p style="color:var(--dark-gray);font-size:.85rem;">Demo: constitution and statistics as today, left out here.</p>`;
+  };
+  window.showVoteDialog = () => showToast('Demo: this would open the vote dialog as today', 'info');
   // Hide the demo pill while the pay screen is up; it sat on top of the Paying badge.
   const _show = window.payShowView, _close = window.closePayFlow;
   window.payShowView = function (v) { _show(v); document.getElementById('demoBar')?.classList.add('hidden'); };
@@ -38,7 +59,7 @@
 
   document.addEventListener('DOMContentLoaded', async () => {
     document.title = 'Union demo: removal votes';
-    selectedGroup = { id: 'g1', name: 'CIMC', currency_symbol: '$', currency_name: 'credits', currency_enabled: true, created_by: 'u1',
+    selectedGroup = { id: 'g1', name: 'CIMC', currency_symbol: '$', currency_name: 'credits', currency_enabled: true, created_by: 'u1', fee_rate: 0.02, daily_income: 1,
       constitution: 'Admission: 60% members $NEW_MEMBER_PERCENTAGE. Votes last 7 days $VOTING_PERIOD_DAYS.' };
     const tavern = { id: 'g2', name: 'The Velvet Tavern', currency_symbol: '🍺', currency_name: 'tokens', currency_enabled: true, created_by: 'u1', constitution: '' };
     myGroups = [{ group_id: 'g1', status: 'active', balance: d.state.balance, groups: selectedGroup }, { group_id: 'g2', status: 'active', balance: 20, groups: tavern }];
@@ -63,7 +84,7 @@
       #demoMenu button{background:none;border:0;text-align:left;padding:9px 12px;border-radius:8px;font-size:14px}
       #demoMenu button:hover{background:#f2f2f2}#demoMenu .reset{color:#b00020;border-top:1px solid #eee;margin-top:4px}
       #demoMenu.hidden{display:none}
-      .tab-bar .tab-btn:not([data-tab=members]){opacity:.35;pointer-events:none}`;
+      .tab-bar .tab-btn:not([data-tab=members]):not([data-tab=money]):not([data-tab=governance]){opacity:.35;pointer-events:none}`;
     document.head.appendChild(css);
     applyUser();
     await render();

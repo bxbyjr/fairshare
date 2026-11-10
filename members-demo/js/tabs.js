@@ -59,6 +59,7 @@ async function renderMoneyTab() {
     const { data: myVotes } = await db.from('votes').select('vote_type, value')
         .eq('group_id', selectedGroup.id).eq('user_id', currentUser.id);
 
+    if (typeof loadDelegates === 'function') await loadDelegates();
     const myFeeVote = myVotes?.find(v => v.vote_type === 'fee_rate');
     const myIncomeVote = myVotes?.find(v => v.vote_type === 'daily_income');
     const balanceDisplay = `${selectedGroup.currency_symbol} ${Number(membership.balance).toFixed(2)}`;
@@ -69,20 +70,7 @@ async function renderMoneyTab() {
                 <div class="info-label">Your Balance</div>
                 <div class="info-value" id="balanceAmount">${balanceDisplay}</div>
             </div>
-            <div class="info-item">
-                <div class="info-label">Fee Rate</div>
-                <div class="info-value">${(Number(selectedGroup.fee_rate) * 100).toFixed(1)}%</div>
-                ${myFeeVote
-                    ? `<div class="info-my-vote info-vote-link" onclick="showVoteDialog('fee_rate')">Your vote: ${(Number(myFeeVote.value) * 100).toFixed(1)}%</div>`
-                    : `<div class="info-vote-link" onclick="showVoteDialog('fee_rate')">vote</div>`}
-            </div>
-            <div class="info-item">
-                <div class="info-label">Daily Income</div>
-                <div class="info-value">${selectedGroup.currency_symbol} ${Number(selectedGroup.daily_income).toFixed(2)}</div>
-                ${myIncomeVote
-                    ? `<div class="info-my-vote info-vote-link" onclick="showVoteDialog('daily_income')">Your vote: ${selectedGroup.currency_symbol} ${Number(myIncomeVote.value).toFixed(2)}</div>`
-                    : `<div class="info-vote-link" onclick="showVoteDialog('daily_income')">vote</div>`}
-            </div>
+            ${moneyPolicyCellsHtml(myFeeVote, myIncomeVote)}
         </div>
         <div style="margin-bottom:1.2rem;">
             <button class="btn btn-primary" onclick="showModal('send')">&#10132; Send ${esc(selectedGroup.currency_symbol)}</button>
@@ -103,19 +91,22 @@ async function renderMembersTab() {
             <button class="btn btn-primary btn-small" onclick="startSponsorMeet()">+ Sponsor</button>
         </div>
         <div id="removalVotesContent" class="hidden"></div>
+        <div id="delegateVotesContent" class="hidden"></div>
         <h4 style="color:var(--accent-color);margin-bottom:0.5rem;">Members</h4>
         <div id="membersListContent"><p style="color:var(--dark-gray);">Loading…</p></div>
         <h4 style="color:var(--accent-color);margin:1.5rem 0 0.5rem;">Candidates Awaiting Endorsement</h4>
         <div id="candidatesContent"><p style="color:var(--dark-gray);">Loading…</p></div>
     `;
 
-    await Promise.all([loadMembersList(), loadCandidatesList(), loadRemovalVotes()]);
+    await Promise.all([loadDelegates(), loadMembersList(), loadCandidatesList(), loadRemovalVotes()]);
 }
 
 async function renderGovernanceTab() {
     if (!selectedGroup) return;
     const content = document.getElementById('tabContent');
+    if (typeof loadDelegates === 'function') await loadDelegates();
     content.innerHTML = `
+        ${typeof whoDecidesHtml === 'function' ? whoDecidesHtml() : ''}
         <h4 style="color:var(--accent-color);margin-bottom:0.5rem;">Constitution</h4>
         <div id="constitutionContent"><p style="color:var(--dark-gray);">Loading…</p></div>
         <h4 style="color:var(--accent-color);margin:1.5rem 0 0.5rem;">Group Statistics</h4>

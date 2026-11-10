@@ -76,10 +76,12 @@ async function loadMembersList() {
             userId: m.user_id, displayName, avatarUrl, isCreator, sponsor: sponsor || null,
             joinedAt: m.joined_at, flow, isMe: m.user_id === currentUser?.id
         };
+        const del = typeof delegateOf === 'function' ? delegateOf(m.user_id) : null;
         return `<button type="button" class="member-item member-item-btn" onclick="openMemberSheet('${m.user_id}')">
             ${avatarHtml}
             <span class="member-name">${esc(displayName)}</span>
-            ${sponsorLabel ? `<span class="member-sponsor">${sponsorLabel}</span>` : ''}
+            ${del ? `<span class="delegate-badge" title="Delegate for ${esc(powersLabel(del.powers))}">Delegate</span>` : ''}
+            ${sponsorLabel && !del ? `<span class="member-sponsor">${sponsorLabel}</span>` : ''}
             ${flowHtml}
         </button>`;
     }).join('');
@@ -105,7 +107,12 @@ async function openMemberSheet(userId) {
     const sym = esc(selectedGroup.currency_symbol || '');
     const currencyOn = groupCurrencyEnabled(selectedGroup);
     const joined = m.joinedAt ? new Date(m.joinedAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : '';
-    const sub = m.isCreator ? 'Founder' : (m.sponsor ? `Sponsored by ${esc(m.sponsor)}` : 'Member');
+    const del = typeof delegateOf === 'function' ? delegateOf(userId) : null;
+    const sub = del ? `Delegate for ${esc(powersLabel(del.powers))}` : (m.isCreator ? 'Founder' : (m.sponsor ? `Sponsored by ${esc(m.sponsor)}` : 'Member'));
+    const nameArg = JSON.stringify(m.displayName).replace(/"/g, '&quot;');
+    const delegateBtn = del
+        ? `<button class="btn btn-ghost member-sheet-btn member-sheet-danger" onclick="closeMemberSheet(); proposeRecallDelegate('${userId}', ${nameArg})">Propose recall as delegate</button>`
+        : `<button class="btn btn-secondary member-sheet-btn" onclick="closeMemberSheet(); openNominateDelegate('${userId}', ${nameArg})">${m.isMe ? 'Nominate yourself as delegate' : 'Nominate as delegate'}</button>`;
     const avatar = m.avatarUrl
         ? `<img class="member-sheet-avatar" src="${esc(m.avatarUrl)}" alt="">`
         : `<div class="member-sheet-avatar placeholder">${esc(m.displayName.charAt(0).toUpperCase())}</div>`;
@@ -132,7 +139,7 @@ async function openMemberSheet(userId) {
     // Actions depend on whether they are in your contacts; find out quietly.
     const actions = panel.querySelector('#memberSheetActions');
     if (m.isMe) {
-        actions.innerHTML = `<button class="btn btn-secondary member-sheet-btn" onclick="closeMemberSheet(); leaveGroup('${selectedGroup.id}', ${JSON.stringify(selectedGroup.name || '')}, event)">Leave group</button>`;
+        actions.innerHTML = `${delegateBtn}<button class="btn btn-ghost member-sheet-btn" onclick="closeMemberSheet(); leaveGroup('${selectedGroup.id}', ${JSON.stringify(selectedGroup.name || '')}, event)">Leave group</button>`;
         return;
     }
     let isContact = false;
@@ -150,6 +157,7 @@ async function openMemberSheet(userId) {
             <button class="btn ${currencyOn ? 'btn-secondary' : 'btn-primary'} member-sheet-btn" onclick="closeMemberSheet(); openDirectMessageScreen('${userId}')">Message</button>
             <button class="btn btn-secondary member-sheet-btn" onclick="closeMemberSheet(); openContactDetailsById('${userId}')">View contact</button>`
         : `<div class="member-sheet-hint">Not in your contacts. Meet in person to connect.</div>`}
+        ${delegateBtn}
         <button class="btn btn-ghost member-sheet-btn member-sheet-danger" onclick="closeMemberSheet(); openProposeRemoval('${userId}', ${JSON.stringify(m.displayName).replace(/"/g, '&quot;')})">Propose removal from group</button>`;
 }
 

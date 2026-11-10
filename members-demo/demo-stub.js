@@ -7,10 +7,10 @@
   // Recents: who you paid last, newest first.
   const recents = [{ to_user: 'u1', group_id: 'g1', from_user: 'u2', created_at: '2026-11-08' }, { to_user: 'u4', group_id: 'g1', from_user: 'u2', created_at: '2026-11-03' }];
   const PCT = 0.6, DAYS = 7;
-  const state = { me: 'u2', proposals: [], events: [], balance: 42 };
+  const state = { me: 'u2', proposals: [], events: [], balance: 42, delegates: [], dprops: [], fee: 0.02, income: 1 };
   window.__demo = { state, members, names, PCT, DAYS };
   const nameOf = id => (members.find(m => m.user_id === id) || {}).profiles?.display_name || '?';
-  const eligible = (target) => members.filter(m => m.status === 'active' && m.user_id !== target).length;
+  const eligible = (target) => members.filter(m => m.group_id === 'g1' && m.status === 'active' && m.user_id !== target).length;
   const check = (p) => {
     const el = eligible(p.target_id), thr = Math.max(1, Math.ceil(el * PCT));
     if (p.status === 'open' && p.votes.size >= thr) {
@@ -39,6 +39,32 @@
         const p = { id: 'p' + Date.now(), target_id: a.p_target_id, proposer_id: state.me, reason: a.p_reason, created_at: new Date().toISOString(), window_end: new Date(Date.now() + DAYS * 864e5).toISOString(), status: 'open', votes: new Set([state.me]) };
         state.proposals.push(p); return { data: check(p) };
       }
+      // ---- delegates (demo only) ----
+      const dcheck = (p) => {
+        const el = eligible(p.target_id), thr = Math.max(1, Math.ceil(el * PCT));
+        if (p.status === 'open' && p.votes.size >= thr) {
+          p.status = 'passed';
+          if (p.kind === 'recall') state.delegates = state.delegates.filter(d => d.user_id !== p.target_id);
+          else { state.delegates = state.delegates.filter(d => d.user_id !== p.target_id && !d.powers.some(x => p.powers.includes(x)));
+                 state.delegates.push({ user_id: p.target_id, name: nameOf(p.target_id), powers: p.powers, since: 'today' }); }
+        }
+        return { id: p.id, kind: p.kind, status: p.status, votes: p.votes.size, threshold: thr, eligible: el, window_end: p.window_end };
+      };
+      const dview = (p) => Object.assign(dcheck(p), { target_id: p.target_id, target_name: nameOf(p.target_id), powers: p.powers, proposer_name: nameOf(p.proposer_id), reason: p.reason,
+        i_voted: p.votes.has(state.me), i_proposed: p.proposer_id === state.me, is_me: p.target_id === state.me });
+      if (fn === 'list_delegates') return { data: state.delegates.map(d => Object.assign({}, d)) };
+      if (fn === 'list_delegate_proposals') return { data: state.dprops.filter(p => p.status === 'open').map(dview).filter(v => v.status === 'open') };
+      if (fn === 'propose_delegate' || fn === 'propose_recall') {
+        const kind = fn === 'propose_recall' ? 'recall' : 'elect';
+        if (state.dprops.some(p => p.status === 'open' && p.target_id === a.p_target_id)) return { error: { message: 'There is already an open vote about this member' } };
+        const p = { id: 'd' + Date.now(), kind, target_id: a.p_target_id, powers: a.p_powers || [], proposer_id: state.me, reason: a.p_reason, window_end: new Date(Date.now() + DAYS * 864e5).toISOString(), status: 'open', votes: new Set([state.me]) };
+        state.dprops.push(p); return { data: dcheck(p) };
+      }
+      const dp = state.dprops.find(p => p.id === a?.p_proposal_id);
+      if (fn === 'vote_delegate') { if (!dp || dp.status !== 'open') return { error: { message: 'This vote is closed' } }; if (dp.target_id === state.me) return { error: { message: 'You cannot vote on yourself' } }; dp.votes.add(state.me); return { data: dcheck(dp) }; }
+      if (fn === 'unvote_delegate') { dp.votes.delete(state.me); return { data: dcheck(dp) }; }
+      if (fn === 'withdraw_delegate') { dp.status = 'withdrawn'; return { data: { status: 'withdrawn' } }; }
+      if (fn === 'delegate_set_policy') { const d = state.delegates.find(d => d.user_id === state.me && d.powers.includes('money')); if (!d) return { error: { message: 'You are not the delegate for money' } }; state.fee = a.p_fee_rate; state.income = a.p_daily_income; state.events.push({ event_type: 'policy_set', summary: nameOf(state.me) + ' set the fee to ' + (state.fee * 100).toFixed(1) + '% and daily income to ' + state.income }); return { data: { ok: true } }; }
       const p = state.proposals.find(p => p.id === a?.p_proposal_id);
       if (fn === 'vote_removal') { if (!p || p.status !== 'open') return { error: { message: 'This vote is closed' } }; if (p.target_id === state.me) return { error: { message: 'You cannot vote on your own removal' } }; p.votes.add(state.me); return { data: check(p) }; }
       if (fn === 'unvote_removal') { p.votes.delete(state.me); return { data: check(p) }; }

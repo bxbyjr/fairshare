@@ -986,6 +986,25 @@ body {
 .btn-ghost { background: transparent; color: var(--dark-gray); border: 1px solid var(--medium-gray); }
 .btn-ghost:hover:not(:disabled) { background: var(--light-gray); }
 .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem; }
+
+/* Delegates */
+.delegate-badge { display: inline-block; font-size: 0.68rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #2d5f7d; background: #e3f0f8; border-radius: 999px; padding: 0.12rem 0.5rem; margin-left: 0.4rem; vertical-align: middle; flex-shrink: 0; }
+.removal-card.delegate-card { border-color: #c9dced; background: #f3f8fc; }
+.delegate-checks { display: flex; flex-direction: column; gap: 0.5rem; margin: 0.25rem 0 0.9rem; }
+.delegate-check { display: flex; align-items: flex-start; gap: 0.7rem; padding: 0.7rem 0.8rem; border: 1px solid var(--medium-gray); border-radius: 10px; cursor: pointer; }
+.delegate-check input { margin-top: 0.2rem; width: 18px; height: 18px; accent-color: #2d5f7d; }
+.delegate-check span { display: flex; flex-direction: column; gap: 0.1rem; }
+.delegate-check b { font-size: 0.95rem; }
+.delegate-check small { color: var(--dark-gray); font-size: 0.8rem; }
+.delegate-check.is-taken { opacity: .55; cursor: default; }
+.decides { margin-bottom: 1.4rem; }
+.decides-row { display: flex; gap: 1rem; padding: 0.7rem 0; border-bottom: 1px solid var(--light-gray); }
+.decides-what { width: 7.5rem; flex-shrink: 0; font-weight: 600; font-size: 0.9rem; padding-top: 0.1rem; }
+.decides-who { flex: 1; min-width: 0; }
+.decides-who b { font-size: 0.95rem; }
+.decides-who small { display: block; color: var(--dark-gray); font-size: 0.8rem; margin-top: 0.15rem; }
+.decides-note { color: var(--dark-gray); font-size: 0.82rem; margin: 0.6rem 0 0; }
+.info-set-by { font-size: 0.72rem; color: var(--dark-gray); margin-top: 0.15rem; }
 .member-tx-flow > span { min-width: 4.5em; text-align: right; }
 .member-tx-in { color: var(--green); }
 .member-tx-out { color: var(--red); }
