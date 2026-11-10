@@ -142,7 +142,7 @@ async function openMemberSheet(userId) {
     } catch (e) { /* treat as not a contact */ }
     if (sheet.dataset.for !== userId && sheet.dataset.for) return; // user tapped someone else meanwhile
     const payBtn = currencyOn
-        ? `<button class="btn btn-primary member-sheet-btn" onclick="closeMemberSheet(); openPayToPerson('${userId}', ${JSON.stringify(m.displayName).replace(/"/g, '&quot;')}, '${selectedGroup.id}', ${JSON.stringify(m.avatarUrl || '')})">Pay ${esc(m.displayName.split(' ')[0])}</button>`
+        ? `<button class="btn btn-primary member-sheet-btn" onclick="closeMemberSheet(); openPayToPerson('${userId}', ${JSON.stringify(m.displayName).replace(/"/g, '&quot;')}, '${selectedGroup.id}', ${JSON.stringify(m.avatarUrl || '').replace(/"/g, '&quot;')})">Pay ${esc(m.displayName.split(' ')[0])}</button>`
         : '';
     actions.innerHTML = `
         ${payBtn}
