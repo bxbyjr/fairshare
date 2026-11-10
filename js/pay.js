@@ -22,6 +22,7 @@ let payState = {
     unwatch: null,
     pending: null,       // a scanned 'request' code awaiting the payer's confirm
     pendingToken: null,
+    toPerson: null,      // {id, name, avatar} when paying someone you picked, no code involved
 };
 
 const PAY_REDUCE_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -151,11 +152,13 @@ async function openPayCompose(direction) {
     }
 
     closeUnionFan(true);
+    payState.toPerson = null;
     document.getElementById('payMemo').value = '';
     payShowView('compose');
     payRenderMode();
     payRenderGroup();
     payRenderAmount();
+    payRenderRecipient();
 
     const video = document.getElementById('payVideo');
     const hint = document.getElementById('payCamHint');
@@ -169,6 +172,95 @@ async function openPayCompose(direction) {
     } else {
         wrap.classList.add('dead');
         hint.textContent = 'Camera unavailable';
+    }
+}
+// Paying someone you already know: same screen, their name where the camera
+// would be. No code, no scanning. The group is the one you opened them from.
+async function openPayToPerson(userId, name, groupId, avatarUrl) {
+    const groups = payGroups();
+    const g = groups.find(x => x.id === groupId);
+    if (!g) { showToast('That group does not use currency', 'error'); return; }
+    if (userId === currentUser?.id) return;
+    payStopCamera();
+    payState.direction = 'pay';
+    payState.amountStr = '';
+    payState.scanHandled = true;          // nothing to scan
+    payState.pending = null; payState.pendingToken = null;
+    payState.groupId = groupId;
+    payState.toPerson = { id: userId, name: name || 'Member', avatar: avatarUrl || null };
+
+    document.getElementById('payMemo').value = '';
+    payShowView('compose');
+    payRenderMode();
+    payRenderGroup();
+    payRenderAmount();
+    payRenderRecipient();
+}
+function payRenderRecipient() {
+    const p = payState.toPerson;
+    const wrap = document.getElementById('payCamWrap');
+    const or = document.querySelector('#payOverlay .pay-or');
+    const paste = document.querySelector('#payOverlay .pay-link-r');
+    let to = document.getElementById('payToWrap');
+    if (!to) {
+        to = document.createElement('div');
+        to.id = 'payToWrap'; to.className = 'pay-towrap';
+        wrap.parentNode.insertBefore(to, wrap);
+    }
+    const person = !!p;
+    wrap.classList.toggle('hidden', person);
+    if (or) or.classList.toggle('hidden', person);
+    if (paste) paste.classList.toggle('hidden', person);
+    to.classList.toggle('hidden', !person);
+    if (!person) return;
+    const initial = esc((p.name || '?').charAt(0).toUpperCase());
+    to.innerHTML = `
+        <div class="pay-to-label">To</div>
+        ${p.avatar ? `<img class="pay-to-avatar" src="${esc(p.avatar)}" alt="">` : `<div class="pay-to-avatar ph">${initial}</div>`}
+        <div class="pay-to-name">${esc(p.name)}</div>`;
+    // One group only: the one you opened them from.
+    const chip = document.getElementById('payGroupChip');
+    chip.disabled = true; chip.classList.remove('many');
+}
+function payGoPressed() {
+    if (payState.toPerson) return payPersonReview();
+    return payMakeCode();
+}
+// Review before it moves: same receipt the code flow shows a payer.
+function payPersonReview() {
+    const g = payActiveGroup(); const n = payNum(); const p = payState.toPerson;
+    if (!g || !(n > 0) || !p) return;
+    const memo = document.getElementById('payMemo').value.trim();
+    payState.pending = { person: true, amount: n, memo };
+    document.getElementById('payConfirmReceipt').innerHTML = payReceiptHtml({
+        who: p.name, group: g, memo, amount: n, fee: 0, paid: false
+    });
+    document.getElementById('payConfirmBal').innerHTML = payMoneyHtml(g.bal || 0, g.sym) + ` <span class="pay-muted">${esc(g.cur || '')}</span>`;
+    document.getElementById('payConfirmGroup').textContent = g.name;
+    const btn = document.getElementById('payConfirmGo');
+    btn.textContent = `Pay ${g.sym}${payFmt(n)}`;
+    btn.disabled = Number(g.bal || 0) < n;
+    if (btn.disabled) showToast(`Not enough ${g.cur || 'balance'} for that`, 'error');
+    payHaptic('pick');
+    payShowView('confirm');
+}
+async function payPersonSend() {
+    const g = payActiveGroup(); const p = payState.toPerson; const pend = payState.pending;
+    if (!g || !p || !pend) return;
+    const btn = document.getElementById('payConfirmGo'); btn.disabled = true;
+    try {
+        const { data, error } = await db.rpc('send_currency', {
+            p_group_id: g.id, p_to_user: p.id, p_amount: pend.amount, p_memo: pend.memo || null
+        });
+        if (error) throw error;
+        await payRefreshBalances();
+        const fresh = payGroups().find(x => x.id === g.id);
+        payState.pending = null;
+        payShowEnding({ iPaid: true, other: p.name, amount: Number(data?.amount ?? pend.amount),
+                        fee: Number(data?.fee || 0), memo: pend.memo, group: g, bal: Number(fresh?.bal ?? 0) });
+    } catch (err) {
+        showToast(err.message || 'Payment failed', 'error');
+        btn.disabled = false;
     }
 }
 function payStopCamera() {
@@ -312,6 +404,7 @@ function payResumeScan() {
     if (payState.view === 'compose' && payState.stream) payScanLoop();
 }
 async function payConfirmPay() {
+    if (payState.pending && payState.pending.person) return payPersonSend();
     const token = payState.pendingToken; if (!token) return;
     const btn = document.getElementById('payConfirmGo'); btn.disabled = true;
     try {
@@ -447,6 +540,7 @@ function closePayFlow() {
     payStopCamera();
     if (payState.unwatch) { payState.unwatch(); payState.unwatch = null; }
     payState.view = null; payState.scanHandled = false; payState.pending = null; payState.pendingToken = null;
+    payState.toPerson = null;
     closePayGroups();
     document.getElementById('payOverlay').classList.add('hidden');
 }

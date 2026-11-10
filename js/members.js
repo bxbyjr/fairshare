@@ -141,9 +141,13 @@ async function openMemberSheet(userId) {
         isContact = !!data;
     } catch (e) { /* treat as not a contact */ }
     if (sheet.dataset.for !== userId && sheet.dataset.for) return; // user tapped someone else meanwhile
+    const payBtn = currencyOn
+        ? `<button class="btn btn-primary member-sheet-btn" onclick="closeMemberSheet(); openPayToPerson('${userId}', ${JSON.stringify(m.displayName).replace(/"/g, '&quot;')}, '${selectedGroup.id}', ${JSON.stringify(m.avatarUrl || '')})">Pay ${esc(m.displayName.split(' ')[0])}</button>`
+        : '';
     actions.innerHTML = `
+        ${payBtn}
         ${isContact ? `
-            <button class="btn btn-primary member-sheet-btn" onclick="closeMemberSheet(); openDirectMessageScreen('${userId}')">Message</button>
+            <button class="btn ${currencyOn ? 'btn-secondary' : 'btn-primary'} member-sheet-btn" onclick="closeMemberSheet(); openDirectMessageScreen('${userId}')">Message</button>
             <button class="btn btn-secondary member-sheet-btn" onclick="closeMemberSheet(); openContactDetailsById('${userId}')">View contact</button>`
         : `<div class="member-sheet-hint">Not in your contacts. Meet in person to connect.</div>`}
         <button class="btn btn-ghost member-sheet-btn member-sheet-danger" onclick="closeMemberSheet(); openProposeRemoval('${userId}', ${JSON.stringify(m.displayName).replace(/"/g, '&quot;')})">Propose removal from group</button>`;

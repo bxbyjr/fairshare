@@ -942,6 +942,16 @@ body {
 .member-sheet-btn.member-sheet-danger { color: #b00020; border-color: #e6b3bb; margin-top: 6px; }
 .member-sheet-btn.member-sheet-danger:hover:not(:disabled) { background: #fff5f6; }
 
+/* Paying a person you picked (no code): their name where the camera would be */
+.pay-towrap { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    min-height: 120px; padding: 14px 16px 8px; }
+.pay-towrap.hidden { display: none; }
+.pay-to-label { font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--pay-ink-2); }
+.pay-to-avatar { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; }
+.pay-to-avatar.ph { background: var(--pay-brand, #2d6a9f); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 1.3rem; }
+.pay-to-name { font-size: 1.15rem; font-weight: 600; }
+#payCamWrap.hidden, #payOverlay .pay-or.hidden, #payOverlay .pay-link-r.hidden { display: none; }
+
 /* Removal votes (Members tab) */
 .removal-h { color: var(--accent-color); margin: 0 0 0.5rem; }
 #removalVotesContent { margin-bottom: 1.25rem; }
