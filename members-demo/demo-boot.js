@@ -19,6 +19,10 @@
   };
   window.openDirectMessageScreen = () => showToast('Demo: this would open your chat with them', 'info');
   window.openContactDetailsById = () => showToast('Demo: this would open their contact card', 'info');
+  // Hide the demo pill while the pay screen is up; it sat on top of the Paying badge.
+  const _show = window.payShowView, _close = window.closePayFlow;
+  window.payShowView = function (v) { _show(v); document.getElementById('demoBar')?.classList.add('hidden'); };
+  window.closePayFlow = function () { _close(); document.getElementById('demoBar')?.classList.remove('hidden'); };
   window.toggleDemoMenu = function () { document.getElementById('demoMenu').classList.toggle('hidden'); };
   window.closeDemoMenu = function () { document.getElementById('demoMenu').classList.add('hidden'); };
   // Hook the toasts that come from the server in real life.
@@ -29,7 +33,8 @@
     document.title = 'Union demo: removal votes';
     selectedGroup = { id: 'g1', name: 'CIMC', currency_symbol: '$', currency_name: 'credits', currency_enabled: true, created_by: 'u1',
       constitution: 'Admission: 60% members $NEW_MEMBER_PERCENTAGE. Votes last 7 days $VOTING_PERIOD_DAYS.' };
-    myGroups = [{ group_id: 'g1', status: 'active', balance: 10, groups: selectedGroup }];
+    myGroups = [{ group_id: 'g1', status: 'active', balance: d.state.balance, groups: selectedGroup }];
+    window.loadMyGroups = async () => { myGroups[0].balance = d.state.balance; };
     activeTab = 'members';
     ['loadingScreen', 'authScreen', 'contactsScreen', 'profileScreen', 'contactDetailsScreen', 'directMessageScreen', 'globeScreen', 'groupList'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
     ['appScreen', 'groupsContent', 'groupView'].forEach(id => document.getElementById(id)?.classList.remove('hidden'));
@@ -44,7 +49,7 @@
       </div>`;
     document.body.appendChild(bar);
     const css = document.createElement('style');
-    css.textContent = `#demoBar{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:50%;transform:translateX(-50%);z-index:5000;font:13px Inter,system-ui,sans-serif}
+    css.textContent = `#demoBar.hidden{display:none}#demoBar{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:50%;transform:translateX(-50%);z-index:5000;font:13px Inter,system-ui,sans-serif}
       #demoBar>button{background:#111;color:#fff;border:0;border-radius:999px;padding:7px 14px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
       #demoMenu{position:absolute;top:38px;left:50%;transform:translateX(-50%);background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.2);padding:6px;display:flex;flex-direction:column;min-width:180px}
       #demoMenu button{background:none;border:0;text-align:left;padding:9px 12px;border-radius:8px;font-size:14px}

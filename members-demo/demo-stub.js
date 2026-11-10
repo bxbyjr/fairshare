@@ -3,7 +3,7 @@
   const names = ['Philip', 'Jane', 'Benjamin', 'Kaliya', 'Ryan'];
   const members = names.map((n, i) => ({ group_id: 'g1', user_id: 'u' + (i + 1), status: 'active', balance: 10 + i * 3, joined_at: '2026-09-0' + (i + 1), profiles: { display_name: n, profile_image_url: null } }));
   const PCT = 0.6, DAYS = 7;
-  const state = { me: 'u2', proposals: [], events: [] };
+  const state = { me: 'u2', proposals: [], events: [], balance: 42 };
   window.__demo = { state, members, names, PCT, DAYS };
   const nameOf = id => (members.find(m => m.user_id === id) || {}).profiles?.display_name || '?';
   const eligible = (target) => members.filter(m => m.status === 'active' && m.user_id !== target).length;
@@ -25,6 +25,7 @@
     then(res) { let data = []; if (table === 'members') data = members.filter(m => !o._f.status || m.status === o._f.status); res({ data, error: null, count: data.length }); } }; return o; };
   const fake = {
     rpc: async (fn, a) => {
+      if (fn === 'send_currency') { const fee = Math.round(a.p_amount * 0.02 * 100) / 100; state.balance -= a.p_amount; return { data: { success: true, amount: a.p_amount, fee, net: a.p_amount - fee } }; }
       if (fn === 'list_removal_proposals') return { data: state.proposals.filter(p => p.status === 'open').map(view).filter(v => v.status === 'open') };
       if (fn === 'propose_removal') {
         if (state.proposals.some(p => p.status === 'open' && p.target_id === a.p_target_id)) return { error: { message: 'There is already an open vote to remove this member' } };
