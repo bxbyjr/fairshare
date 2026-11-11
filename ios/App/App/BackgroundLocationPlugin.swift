@@ -582,7 +582,7 @@ public class BackgroundLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
         guard let manager = locationManager, locationUploadEnabled else { return }
         manager.distanceFilter = idleDistanceFilterMeters
         if manager.authorizationStatus == .authorizedAlways {
-            manager.showsBackgroundLocationIndicator = true
+            manager.showsBackgroundLocationIndicator = false
         }
         if CLLocationManager.significantLocationChangeMonitoringAvailable(),
            !significantLocationMonitoringActive {
@@ -658,9 +658,10 @@ public class BackgroundLocationPlugin: CAPPlugin, CLLocationManagerDelegate {
             if !manager.allowsBackgroundLocationUpdates {
                 manager.allowsBackgroundLocationUpdates = true
             }
-            if locationUploadEnabled {
-                manager.showsBackgroundLocationIndicator = true
-            }
+            // No blue "Union is using your location" bar while sharing. With
+            // Always authorization iOS still shows the small arrow in the
+            // status bar, which is the same signal Find My and Google Maps give.
+            manager.showsBackgroundLocationIndicator = false
         } else {
             if manager.allowsBackgroundLocationUpdates {
                 manager.allowsBackgroundLocationUpdates = false
