@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Demo: Union Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{--ink:#1a2433;--ink2:#5f6b76;--ink3:#8a96a3;--brand:#2d5f7d;--brand-bg:#e3f0f8;--bg:#f2f4f7;--rule:#e3e8ed;--line:#c6cfd7;
+ --offer:#1f8a5b;--offer-bg:#e4f5ec;--ask:#b7791f;--ask-bg:#fff4dc;--event:#7a3db8;--event-bg:#f0e7fb;--notice:#5f6b76;--notice-bg:#eceff3;
+ --head1:#1a4a6e;--head2:#0f2d45;--ease:cubic-bezier(.2,.8,.2,1);--t:300ms}
+*{box-sizing:border-box} html,body{margin:0;height:100%}
+body{font:15px/1.4 Inter,system-ui,sans-serif;color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+.app{max-width:480px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.head{background:linear-gradient(135deg,var(--head1),var(--head2));color:#fff;padding:calc(env(safe-area-inset-top,0px) + 10px) 16px 0;flex:none;z-index:5}
+.head-row{display:flex;align-items:center;justify-content:space-between;height:44px}
+.head h1{font-size:19px;margin:0;font-weight:700}
+.icon-btn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18)} .icon-btn svg{width:22px;height:22px}
+.gtabs{display:flex;gap:0;margin-top:4px;overflow-x:auto;scrollbar-width:none}
+.gtabs button{padding:10px 12px;font-size:13.5px;font-weight:600;color:rgba(255,255,255,.6);border-bottom:2px solid transparent;white-space:nowrap}
+.gtabs button.on{color:#fff;border-color:#fff}
+.sub{background:#fff;border-bottom:1px solid var(--rule);padding:10px 14px;display:flex;gap:8px;align-items:center;flex:none;z-index:4}
+.seg{display:flex;background:var(--bg);border-radius:10px;padding:3px;flex:none}
+.seg button{padding:7px 14px;border-radius:8px;font-size:13.5px;font-weight:600;color:var(--ink2)} .seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1}
+.chips button{flex:none;padding:7px 11px;border-radius:999px;font-size:12.5px;font-weight:600;border:1px solid var(--line);color:var(--ink2);background:#fff}
+.chips button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.body{flex:1;position:relative;min-height:0}
+.list{position:absolute;inset:0;overflow:auto;padding:12px 14px calc(110px + env(safe-area-inset-bottom,0px))}
+#map{position:absolute;inset:0;display:none} .map-on #map{display:block} .map-on .list{display:none}
+.post{background:#fff;border:1px solid var(--rule);border-radius:16px;margin-bottom:10px;overflow:hidden;transition:transform var(--t) var(--ease)}
+.post:active{transform:scale(.985)}
+.post-main{display:flex;gap:12px;padding:13px 14px;width:100%;text-align:left}
+.kind{flex:none;width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:20px}
+.kind.offer{background:var(--offer-bg)} .kind.ask{background:var(--ask-bg)} .kind.event{background:var(--event-bg)} .kind.notice{background:var(--notice-bg)}
+.pm{flex:1;min-width:0}
+.pt{font-weight:600;font-size:15.5px;line-height:1.3}
+.ps{font-size:13px;color:var(--ink2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12px;color:var(--ink3)}
+.pr .av{width:20px;height:20px;font-size:8px}
+.tag{font-size:11px;font-weight:600;padding:2px 7px;border-radius:999px}
+.tag.offer{background:var(--offer-bg);color:var(--offer)} .tag.ask{background:var(--ask-bg);color:var(--ask)} .tag.event{background:var(--event-bg);color:var(--event)} .tag.notice{background:var(--notice-bg);color:var(--notice)}
+.price{flex:none;font-weight:700;font-size:15px;white-space:nowrap;align-self:flex-start;margin-top:2px}
+.price small{font-weight:500;color:var(--ink2);font-size:11px;margin-left:2px}
+.price.free{color:var(--offer)}
+.px{max-height:0;overflow:hidden;transition:max-height .35s var(--ease)}
+.post.open .px{max-height:260px}
+.pxin{border-top:1px solid var(--rule);padding:12px 14px 14px;font-size:14px;color:var(--ink2);line-height:1.5}
+.pxin .row{display:flex;gap:8px;margin-top:12px}
+.btn{flex:1;padding:12px;border-radius:11px;font-weight:600;font-size:14px;text-align:center;background:var(--brand);color:#fff}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn.done{background:var(--offer-bg);color:var(--offer)}
+.going{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12.5px;color:var(--ink2)}
+.going .faces{display:flex} .going .faces .av{width:22px;height:22px;font-size:8px;border:2px solid #fff;margin-left:-7px} .going .faces .av:first-child{margin-left:0}
+.av{border-radius:50%;background:var(--brand-bg);color:var(--brand);font-weight:600;display:grid;place-items:center;flex:none}
+.why{font-size:11.5px;color:var(--ink3);margin:2px 6px 10px;display:flex;align-items:center;gap:6px}
+.why b{color:var(--ink2);font-weight:600}
+.fab{position:absolute;right:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));width:56px;height:56px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;box-shadow:0 8px 20px rgba(45,95,125,.4);z-index:1001;transition:transform var(--t) var(--ease)}
+.fab:active{transform:scale(.92)} .fab svg{width:26px;height:26px}
+.bar{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--rule);padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-around;align-items:flex-end;z-index:1002}
+.bar button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--ink3);width:90px}
+.bar button.on{color:var(--brand)} .bar svg{width:24px;height:24px}
+.bar .union{width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,var(--head1),var(--head2));margin-top:-26px;display:grid;place-items:center;color:#fff;box-shadow:0 6px 18px rgba(15,45,69,.35)} .bar .union svg{width:28px;height:28px}
+/* map pins */
+.pin{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:grid;place-items:center;box-shadow:0 3px 8px rgba(0,0,0,.25);border:2px solid #fff;transition:transform .25s var(--ease)}
+.pin span{transform:rotate(45deg);font-size:16px}
+.pin.offer{background:var(--offer)} .pin.ask{background:var(--ask)} .pin.event{background:var(--event)} .pin.notice{background:var(--notice)}
+.pin.me{background:var(--brand);border-radius:50%;transform:none;width:18px;height:18px;box-shadow:0 0 0 6px rgba(45,95,125,.25)}
+.leaflet-marker-icon.sel .pin{transform:rotate(-45deg) scale(1.25)}
+.mapcard{position:absolute;left:14px;right:14px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:1000;transform:translateY(130%);transition:transform .35s var(--ease)}
+.mapcard.on{transform:none}
+.mapcard .post{margin:0;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.leaflet-control-attribution{font-size:9px}
+/* sheet */
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.45);opacity:0;pointer-events:none;transition:opacity var(--t);z-index:1010} .scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:22px 22px 0 0;padding:10px 20px calc(22px + env(safe-area-inset-bottom,0px));transform:translateY(105%);transition:transform .38s var(--ease);z-index:1011}
+.sheet.on{transform:none}
+.grab{width:36px;height:4px;border-radius:2px;background:var(--rule);margin:0 auto 14px}
+.sheet h3{margin:0 0 12px;font-size:18px}
+.kinds{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.kinds button{display:flex;align-items:center;gap:10px;padding:12px;border:1.5px solid var(--rule);border-radius:12px;text-align:left}
+.kinds button.on{border-color:var(--brand);background:var(--brand-bg)}
+.kinds .kind{width:36px;height:36px;font-size:18px} .kinds b{font-size:14px;display:block} .kinds small{font-size:11.5px;color:var(--ink2)}
+.f{display:block;width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);margin-bottom:8px;outline:none} .f:focus{border-color:var(--brand);background:#fff}
+.frow{display:flex;gap:8px} .frow .f{flex:1}
+.hintl{font-size:12.5px;color:var(--ink2);margin:0 0 12px}
+.toast{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 110px);transform:translateX(-50%) translateY(-10px);background:#111;color:#fff;padding:9px 14px;border-radius:999px;font-size:13px;opacity:0;transition:all var(--t);z-index:1020;pointer-events:none;white-space:nowrap} .toast.on{opacity:1;transform:translateX(-50%)}
+.demo-pill{position:absolute;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 84px);z-index:1003;font-size:11px;background:#111;color:#fff;border-radius:999px;padding:5px 10px;opacity:.85;pointer-events:none}
+.post.in{animation:drop .5s var(--ease)} @keyframes drop{from{transform:translateY(-14px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="head">
+    <div class="head-row">
+      <button class="icon-btn" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <h1>The Velvet Tavern</h1>
+      <span style="width:40px"></span>
+    </div>
+    <div class="gtabs"><button>Money</button><button>Members</button><button class="on">Board</button><button>Governance</button></div>
+  </header>
+  <div class="sub">
+    <div class="seg"><button class="on" id="segList" onclick="setView('list')">Board</button><button id="segMap" onclick="setView('map')">Map</button></div>
+    <div class="chips" id="chips"></div>
+  </div>
+  <div class="body" id="body">
+    <div class="list" id="list"></div>
+    <div id="map"></div>
+    <div class="mapcard" id="mapcard"></div>
+  </div>
+  <button class="fab" onclick="openCompose()" aria-label="Post"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  <nav class="bar">
+    <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.7-3.6 3.8-5.6 7.5-5.6s6.8 2 7.5 5.6"/></svg>Contacts</button>
+    <button><span class="union"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span></button>
+    <button class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3 19c.5-3 2.8-4.6 6-4.6s5.5 1.6 6 4.6M15.5 14.6c2.6.2 4.4 1.6 5 4.4"/></svg>Groups</button>
+  </nav>
+  <div class="scrim" id="scrim" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet"></div>
+  <div class="toast" id="toast"></div>
+  <div class="demo-pill">Demo · fake data</div>
+</div>
+<script>
+const ME={id:'jane',name:'Jane Rhee',lat:37.7897,lng:-122.4075};
+const people={philip:'Philip Rosedale',jane:'Jane Rhee',ben:'Benjamin Ortiz',kaliya:'Kaliya Young',sara:'Sara Lim',ryan:'Ryan Park',tom:'Tom Nguyen',mark:'Mark Chen',ana:'Ana Silva',omar:'Omar Haddad'};
+const contacts=new Set(['philip','kaliya','sara','mark']);
+const ini=n=>n.split(' ').slice(0,2).map(w=>w[0]).join('');
+const first=id=>people[id].split(' ')[0];
+const K={offer:{icon:'🎁',label:'Offer',verb:'I’ll take it'},ask:{icon:'🙋',label:'Looking for',verb:'I can help'},event:{icon:'📅',label:'Event',verb:'I’m going'},notice:{icon:'📌',label:'Notice',verb:'Got it'}};
+// kind, title, detail, author, price (null = n/a, 0 = free), place {name,lat,lng} or null, when (hours ago), extra (event time), responders
+let posts=[
+ {id:1,kind:'event',title:'Potluck on the roof, Saturday 6pm',detail:'Bring a dish and something to pour. We’ll have the grill going. Kids welcome.',by:'philip',price:null,place:{name:'447 Sutter St rooftop',lat:37.7899,lng:-122.4089},when:3,at:'Sat 6:00 PM',resp:['kaliya','sara','ben']},
+ {id:2,kind:'offer',title:'Free: 4 monstera cuttings',detail:'Rooted, about a foot tall. Pick up from my porch any evening this week.',by:'sara',price:0,place:{name:'Sara’s place, Hayes Valley',lat:37.7762,lng:-122.4238},when:5,resp:['mark']},
+ {id:3,kind:'ask',title:'Anyone have a tall ladder I can borrow Sunday?',detail:'Need to reach a gutter. 10 ft or taller. Will return it Monday with beer.',by:'ryan',price:null,place:null,when:7,resp:[]},
+ {id:4,kind:'offer',title:'Haircuts at my chair, Tuesday afternoons',detail:'I’m a barber at a shop on Valencia. Union members pay in tokens, walk-ins 2 to 5pm.',by:'omar',price:25,place:{name:'Valencia St, Mission',lat:37.7609,lng:-122.4216},when:20,resp:['tom','ana']},
+ {id:5,kind:'notice',title:'Daily income goes to 2 tokens from Monday',detail:'The vote passed yesterday. Nothing to do, it just shows up.',by:'philip',price:null,place:null,when:26,resp:[]},
+ {id:6,kind:'event',title:'Trivia night at the Tavern',detail:'Teams of 4. Winning team drinks on the house, paid in tokens of course.',by:'ben',price:null,place:{name:'The Velvet Tavern',lat:37.7881,lng:-122.4058},when:30,at:'Thu 8:00 PM',resp:['jane','mark','kaliya','omar']},
+ {id:7,kind:'offer',title:'Bike tune-ups this weekend',detail:'Brakes, gears, a wash. Bring it by, done while you wait.',by:'mark',price:15,place:{name:'Panhandle, near Oak St',lat:37.7726,lng:-122.4430},when:44,resp:[]},
+ {id:8,kind:'ask',title:'Looking for a Spanish conversation partner',detail:'An hour a week over coffee. I’ll pay in tokens or trade English practice.',by:'ana',price:10,place:null,when:50,resp:['kaliya']},
+ {id:9,kind:'offer',title:'Spare desk in our studio, 3 days a week',detail:'Quiet, good light, fast wifi. Tokens per month, ask me.',by:'tom',price:120,place:{name:'Dogpatch studio',lat:37.7577,lng:-122.3880},when:70,resp:[]},
+];
+const incoming=[{id:10,kind:'ask',title:'Can anyone lend a projector tonight?',detail:'Movie night fell apart, ours died. Back to you by 11.',by:'kaliya',price:null,place:null,when:0,resp:[]}];
+const km=(a,b)=>{ if(!b) return null; const R=6371,d=Math.PI/180; const x=(b.lng-a.lng)*d*Math.cos((a.lat+b.lat)/2*d), y=(b.lat-a.lat)*d; return Math.sqrt(x*x+y*y)*R; };
+// relevancy: a score, not a sort column
+function score(p){ let s=0, why=[];
+  s+=Math.max(0,48-p.when)/48*3; if(p.when<6){why.push('new');}
+  if(contacts.has(p.by)){s+=2; why.push(`${first(p.by)} is a contact`);}
+  const d=km(ME,p.place); if(d!==null){ if(d<1.5){s+=2; why.push(`${d.toFixed(1)} km away`);} else if(d<4){s+=1;} }
+  if(p.kind==='event'){s+=1.2; if(!why.includes('new')) why.push('coming up');}
+  if(p.resp.includes(ME.id)){s+=1.5; why.unshift('you’re going');}
+  return {s,why:why.slice(0,2)}; }
+let filter='all', view='list', openId=null;
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ago=h=>h<1?'just now':h<24?`${h}h ago`:`${Math.round(h/24)}d ago`;
+function priceHtml(p){ if(p.price===null) return ''; if(p.price===0) return `<span class="price free">Free</span>`; return `<span class="price">${p.price}<small>tokens</small></span>`; }
+function postHtml(p,opts){ opts=opts||{}; const k=K[p.kind]; const sc=score(p); const mine=p.resp.includes(ME.id); const d=km(ME,p.place);
+  const sub=[p.at, p.place?p.place.name:null, d!==null?`${d.toFixed(1)} km`:null, ago(p.when)].filter(Boolean).join(' · ');
+  return `<div class="post${openId===p.id?' open':''}${opts.cls||''}" id="p${p.id}">
+    <button class="post-main" onclick="toggle(${p.id})">
+      <span class="kind ${p.kind}">${k.icon}</span>
+      <span class="pm"><div class="pt">${esc(p.title)}</div><div class="ps">${esc(sub)}</div>
+        <div class="pr"><span class="av">${esc(ini(people[p.by]))}</span>${esc(first(p.by))}<span class="tag ${p.kind}">${k.label}</span>${sc.why.length&&!opts.nowhy?`<span>· ${esc(sc.why.join(' · '))}</span>`:''}</div></span>
+      ${priceHtml(p)}
+    </button>
+    <div class="px"><div class="pxin">${esc(p.detail)}
+      ${p.resp.length?`<div class="going"><span class="faces">${p.resp.slice(0,4).map(r=>`<span class="av">${esc(ini(people[r]))}</span>`).join('')}</span>${p.resp.length} ${p.kind==='event'?'going':p.kind==='ask'?'can help':'interested'}</div>`:''}
+      <div class="row"><button class="btn${mine?' done':''}" onclick="respond(${p.id})">${mine?'✓ '+k.verb.replace('I’ll take it','You’re on the list').replace('I’m going','You’re going').replace('I can help','You offered'):k.verb}</button><button class="btn ghost" onclick="toast('Demo: opens a message to ${esc(first(p.by))}')">Message ${esc(first(p.by))}</button>${p.place&&!opts.nowhy?`<button class="btn ghost" style="flex:0 0 auto;padding:12px 14px" onclick="showOnMap(${p.id})">Map</button>`:''}</div>
+    </div></div></div>`; }
+function sorted(){ return posts.filter(p=>filter==='all'||p.kind===filter||(filter==='near'&&p.place&&km(ME,p.place)<2)).map(p=>({p,s:score(p).s})).sort((a,b)=>b.s-a.s).map(x=>x.p); }
+function renderList(){ const list=sorted(); $('#list').innerHTML=(filter==='all'?`<div class="why">Sorted for you: newest, near you, your contacts, things you’re in.</div>`:'')+list.map(p=>postHtml(p)).join('')+(list.length?'':'<div class="why" style="padding:30px 0;justify-content:center">Nothing here yet.</div>'); }
+function renderChips(){ const c=[['all','All'],['near','Near me'],['offer','🎁 Offers'],['ask','🙋 Asks'],['event','📅 Events'],['notice','📌 Notices']]; $('#chips').innerHTML=c.map(([k,l])=>`<button class="${filter===k?'on':''}" onclick="setFilter('${k}')">${l}</button>`).join(''); }
+function setFilter(k){ filter=k; renderChips(); renderList(); renderPins(); }
+function toggle(id){ openId=openId===id?null:id; renderList(); if(view==='map') renderMapCard(id); const el=document.getElementById('p'+id); if(el&&view==='list') el.scrollIntoView({block:'nearest',behavior:'smooth'}); }
+function respond(id){ const p=posts.find(x=>x.id===id); const i=p.resp.indexOf(ME.id); if(i>=0) p.resp.splice(i,1); else p.resp.push(ME.id); renderList(); if(view==='map') renderMapCard(id); toast(i>=0?'Removed you':'Told '+first(p.by)+' · they get a notification'); }
+// ---- map ----
+let map, pins={};
+function ensureMap(){ if(map) return; map=L.map('map',{zoomControl:false,attributionControl:true}).setView([ME.lat,ME.lng],13);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap, © CARTO',maxZoom:19}).addTo(map);
+  L.marker([ME.lat,ME.lng],{icon:L.divIcon({className:'',html:'<div class="pin me"></div>',iconSize:[18,18],iconAnchor:[9,9]}),interactive:false}).addTo(map);
+  map.on('click',()=>{ $('#mapcard').classList.remove('on'); Object.values(pins).forEach(m=>m.getElement()?.classList.remove('sel')); }); }
+function renderPins(){ if(!map) return; Object.values(pins).forEach(m=>map.removeLayer(m)); pins={};
+  sorted().filter(p=>p.place).forEach(p=>{ const m=L.marker([p.place.lat,p.place.lng],{icon:L.divIcon({className:'',html:`<div class="pin ${p.kind}"><span>${K[p.kind].icon}</span></div>`,iconSize:[34,34],iconAnchor:[17,34]})}).addTo(map); m.on('click',()=>{ openId=p.id; renderMapCard(p.id); Object.values(pins).forEach(x=>x.getElement()?.classList.remove('sel')); m.getElement()?.classList.add('sel'); map.panTo([p.place.lat,p.place.lng],{animate:true}); }); pins[p.id]=m; }); }
+function renderMapCard(id){ const p=posts.find(x=>x.id===id); if(!p){ $('#mapcard').classList.remove('on'); return; } openId=id; $('#mapcard').innerHTML=postHtml(p,{nowhy:true}).replace('class="post','class="post open'); $('#mapcard').classList.add('on'); }
+function setView(v){ view=v; $('#segList').classList.toggle('on',v==='list'); $('#segMap').classList.toggle('on',v==='map'); $('#body').classList.toggle('map-on',v==='map'); if(v==='map'){ ensureMap(); setTimeout(()=>{map.invalidateSize(); renderPins();},50); } else { $('#mapcard').classList.remove('on'); renderList(); } }
+function showOnMap(id){ setView('map'); setTimeout(()=>{ const p=posts.find(x=>x.id===id); map.setView([p.place.lat,p.place.lng],15,{animate:true}); renderMapCard(id); pins[id]?.getElement()?.classList.add('sel'); },120); }
+// ---- compose ----
+let ck='offer';
+function openCompose(){ $('#sheet').innerHTML=`<div class="grab"></div><h3>Post to the Tavern board</h3>
+  <div class="kinds" id="kinds"></div>
+  <input class="f" id="ct" placeholder="What is it?" maxlength="80">
+  <input class="f" id="cd" placeholder="A line or two of detail (optional)" maxlength="280">
+  <input class="f" id="cp" placeholder="Price in tokens (blank = free)" inputmode="decimal"><button class="f" style="text-align:left;color:var(--ink2)" onclick="toast('Demo: picks a place on the map, or your current spot')">📍 Add a place</button>
+  <p class="hintl">Everyone in The Velvet Tavern sees it. It drops off the board after 30 days or when you mark it done.</p>
+  <button class="btn" style="width:100%" onclick="submitCompose()">Post</button>`; renderKinds(); $('#scrim').classList.add('on'); $('#sheet').classList.add('on'); setTimeout(()=>$('#ct').focus(),300); }
+function renderKinds(){ $('#kinds').innerHTML=Object.entries(K).map(([k,v])=>`<button class="${ck===k?'on':''}" onclick="ck='${k}';renderKinds()"><span class="kind ${k}">${v.icon}</span><span><b>${v.label}</b><small>${k==='offer'?'something you have':k==='ask'?'something you need':k==='event'?'a time and a place':'everyone should know'}</small></span></button>`).join(''); }
+function submitCompose(){ const t=$('#ct').value.trim(); if(!t){ toast('Give it a title'); return; } const pr=$('#cp').value.trim(); posts.unshift({id:Date.now(),kind:ck,title:t,detail:$('#cd').value.trim()||'',by:ME.id,price:pr?Number(pr):(ck==='offer'?0:null),place:null,when:0,resp:[]}); closeSheet(); filter='all'; renderChips(); renderList(); document.querySelector('#list .post')?.classList.add('in'); toast('Posted. The group gets a notification.'); }
+function closeSheet(){ $('#scrim').classList.remove('on'); $('#sheet').classList.remove('on'); }
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('on'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2200); }
+renderChips(); renderList();
+setTimeout(()=>{ posts.unshift(incoming[0]); if(view==='list'&&filter==='all'){ renderList(); document.querySelector('#list .post')?.classList.add('in'); } },6000);
+</script>
+</body>
+</html>
