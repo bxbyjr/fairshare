@@ -183,7 +183,7 @@ function renderPast(){ const past=posts.filter(isPast).sort((a,b)=>(b.at||b.post
 let map, pins={};
 const COL={event:'#6a3fb5',offer:'#1f8a5b',ask:'#b7791f',notice:'#5f6b76'};
 function ensureMap(){ if(map||!window.L) return; map=L.map('map',{zoomControl:false}).setView([37.781,-122.418],13);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap, © CARTO',maxZoom:19}).addTo(map);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png?key=cb1_4c3c_1_cc4e7e047c9f0603e396c06d',{attribution:'© OpenStreetMap, © CARTO',maxZoom:19}).addTo(map);
   L.marker([37.7897,-122.4075],{icon:L.divIcon({className:'',html:'<div class="pin me"></div>',iconSize:[16,16],iconAnchor:[8,8]}),interactive:false}).addTo(map);
   map.on('click',()=>{ $('#mapcard').classList.remove('on'); Object.values(pins).forEach(m=>m.getElement()?.querySelector('.pin')?.classList.remove('sel')); }); }
 function renderMap(){ if(!map) return; Object.values(pins).forEach(m=>map.removeLayer(m)); pins={};
