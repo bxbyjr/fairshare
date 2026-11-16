@@ -6,6 +6,8 @@
 <title>Demo: Union Board</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{--ink:#1a2433;--ink2:#5f6b76;--ink3:#8a96a3;--brand:#2d5f7d;--brand-bg:#e3f0f8;--bg:#f2f4f7;--rule:#e3e8ed;--line:#c6cfd7;
  --head1:#1a4a6e;--head2:#0f2d45;--ease:cubic-bezier(.2,.8,.2,1);--t:300ms}
@@ -58,15 +60,15 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .day .d.today b{color:var(--brand)}
 .day .items{flex:1;min-width:0}
 .empty{padding:50px 20px;text-align:center;color:var(--ink3);font-size:14px}
-.fab{position:absolute;right:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));height:52px;padding:0 20px 0 16px;border-radius:26px;background:var(--ink);color:#fff;display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;box-shadow:0 8px 20px rgba(26,36,51,.35);z-index:6;transition:transform var(--t) var(--ease)}
+.fab{position:absolute;right:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));height:52px;padding:0 20px 0 16px;border-radius:26px;background:var(--ink);color:#fff;display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;box-shadow:0 8px 20px rgba(26,36,51,.35);z-index:1001;transition:transform var(--t) var(--ease)}
 .fab:active{transform:scale(.95)} .fab svg{width:22px;height:22px}
-.bar{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--rule);padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-around;align-items:flex-end;z-index:5}
+.bar{position:absolute;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--rule);padding:8px 0 calc(8px + env(safe-area-inset-bottom,0px));display:flex;justify-content:space-around;align-items:flex-end;z-index:1002}
 .bar button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--ink3);width:90px}
 .bar button.on{color:var(--brand)} .bar svg{width:24px;height:24px}
 .bar .union{width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,var(--head1),var(--head2));margin-top:-26px;display:grid;place-items:center;color:#fff;box-shadow:0 6px 18px rgba(15,45,69,.35)} .bar .union svg{width:28px;height:28px}
 /* detail sheet */
-.scrim{position:absolute;inset:0;background:rgba(11,18,32,.5);opacity:0;pointer-events:none;transition:opacity var(--t);z-index:20} .scrim.on{opacity:1;pointer-events:auto}
-.sheet{position:absolute;left:0;right:0;bottom:0;max-height:92%;overflow:auto;background:#fff;border-radius:24px 24px 0 0;transform:translateY(105%);transition:transform .4s var(--ease);z-index:21}
+.scrim{position:absolute;inset:0;background:rgba(11,18,32,.5);opacity:0;pointer-events:none;transition:opacity var(--t);z-index:1010} .scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-height:92%;overflow:auto;background:#fff;border-radius:24px 24px 0 0;transform:translateY(105%);transition:transform .4s var(--ease);z-index:1011}
 .sheet.on{transform:none}
 .sheet .cover{height:210px;border-radius:24px 24px 0 0}
 .sheet .cover h3{font-size:26px}
@@ -85,8 +87,13 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
 .kinds{display:flex;gap:6px;margin:0 0 14px} .kinds button{flex:1;padding:10px 6px;border:1.5px solid var(--rule);border-radius:12px;font-size:13px;font-weight:700;color:var(--ink2);text-align:center} .kinds button.on{border-color:var(--ink);color:var(--ink)}
 .f{display:block;width:100%;border:1px solid var(--line);border-radius:12px;padding:13px 14px;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);margin-bottom:8px;outline:none} .f:focus{border-color:var(--ink);background:#fff}
 .hintl{font-size:12.5px;color:var(--ink2);margin:4px 0 14px}
-.toast{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 110px);transform:translateX(-50%) translateY(-10px);background:#111;color:#fff;padding:9px 14px;border-radius:999px;font-size:13px;opacity:0;transition:all var(--t);z-index:40;pointer-events:none;white-space:nowrap} .toast.on{opacity:1;transform:translateX(-50%)}
-.demo-pill{position:absolute;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 90px);z-index:7;font-size:11px;background:#111;color:#fff;border-radius:999px;padding:5px 10px;opacity:.85;pointer-events:none}
+.toast{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 110px);transform:translateX(-50%) translateY(-10px);background:#111;color:#fff;padding:9px 14px;border-radius:999px;font-size:13px;opacity:0;transition:all var(--t);z-index:1020;pointer-events:none;white-space:nowrap} .toast.on{opacity:1;transform:translateX(-50%)}
+.demo-pill{position:absolute;left:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 90px);z-index:7;font-size:11px;background:#111;color:#fff;border-radius:999px;padding:5px 10px;opacity:.85;pointer-events:none;z-index:1003}
+.pin{width:26px;height:26px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);display:grid;place-items:center;color:#fff;font-size:10px;font-weight:800;transition:transform .25s var(--ease)}
+.pin.sel{transform:scale(1.35)} .pin.me{background:var(--brand);width:16px;height:16px;box-shadow:0 0 0 7px rgba(45,95,125,.22)}
+.mapcard{position:absolute;left:14px;right:14px;bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:1000;transform:translateY(130%);transition:transform .35s var(--ease)}
+.mapcard.on{transform:none} .mapcard .card{margin:0;box-shadow:0 12px 32px rgba(0,0,0,.22)} .mapcard .cover{height:120px}
+.leaflet-control-attribution{font-size:9px}
 .card.in,.row.in{animation:drop .5s var(--ease)} @keyframes drop{from{transform:translateY(-14px);opacity:0}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -105,12 +112,14 @@ button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:poin
     <button class="on" onclick="goTab(0)">Explore</button>
     <button onclick="goTab(1)">Calendar<span class="count" id="calCount"></span></button>
     <button onclick="goTab(2)">Past</button>
+    <button onclick="goTab(3)">Map</button>
     <span class="ink" id="ink"></span>
   </div>
   <div class="panels" id="panels">
     <div class="panel" id="pExplore"></div>
     <div class="panel" id="pCal"></div>
     <div class="panel" id="pPast"></div>
+    <div class="panel" id="pMap" style="padding:0;overflow:hidden;position:relative"><div id="map" style="position:absolute;inset:0"></div><div class="mapcard" id="mapcard"></div></div>
   </div>
   <button class="fab" onclick="openCompose()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Post</button>
   <nav class="bar">
@@ -132,12 +141,12 @@ const NOW=new Date(2026,10,16,12);
 const D=(d,h,m)=>new Date(2026,10,d,h,m||0);
 const K={event:{label:'Event',verb:'I’m going',done:'You’re going'},offer:{label:'Offer',verb:'I’ll take it',done:'You asked for it'},ask:{label:'Ask',verb:'I can help',done:'You offered'},notice:{label:'Notice',verb:'Got it',done:'Seen'}};
 let posts=[
- {id:1,kind:'event',cover:'c-event',title:'Potluck on the roof',detail:'Bring a dish and something to pour. We’ll have the grill going. Kids welcome, dogs tolerated.',by:'philip',at:D(21,18),end:D(21,22),place:'447 Sutter St rooftop',resp:['kaliya','sara','ben','omar','ana']},
- {id:6,kind:'event',cover:'c-event2',title:'Trivia night at the Tavern',detail:'Teams of 4. Winning team drinks on the house, paid in tokens of course.',by:'ben',at:D(19,20),end:D(19,23),place:'The Velvet Tavern',resp:['jane','mark','kaliya','omar']},
- {id:11,kind:'event',cover:'c-event',title:'Sunday ride to Ocean Beach',detail:'Easy pace, coffee at the end. Meet at the Panhandle.',by:'mark',at:D(22,9),end:D(22,12),place:'Panhandle, Oak St',resp:['tom']},
- {id:12,kind:'event',cover:'c-event2',title:'Members’ meeting: daily income vote',detail:'Twenty minutes. The vote closes at the end.',by:'philip',at:D(25,19),end:D(25,20),place:'The Velvet Tavern, back room',resp:['jane','ben','sara']},
- {id:2,kind:'offer',cover:'c-offer',title:'Free: 4 monstera cuttings',detail:'Rooted, about a foot tall. Pick up from my porch any evening this week.',by:'sara',price:0,place:'Hayes Valley',posted:D(15,19),resp:['mark']},
- {id:4,kind:'offer',cover:'c-offer2',title:'Haircuts at my chair, Tuesdays',detail:'I’m a barber on Valencia. Union members pay in tokens, walk-ins 2 to 5pm.',by:'omar',price:25,place:'Valencia St, Mission',posted:D(14,10),resp:['tom','ana']},
+ {id:1,kind:'event',cover:'c-event',title:'Potluck on the roof',detail:'Bring a dish and something to pour. We’ll have the grill going. Kids welcome, dogs tolerated.',by:'philip',at:D(21,18),end:D(21,22),place:'447 Sutter St rooftop',ll:[37.7899,-122.4089],resp:['kaliya','sara','ben','omar','ana']},
+ {id:6,kind:'event',cover:'c-event2',title:'Trivia night at the Tavern',detail:'Teams of 4. Winning team drinks on the house, paid in tokens of course.',by:'ben',at:D(19,20),end:D(19,23),place:'The Velvet Tavern',ll:[37.7881,-122.4058],resp:['jane','mark','kaliya','omar']},
+ {id:11,kind:'event',cover:'c-event',title:'Sunday ride to Ocean Beach',detail:'Easy pace, coffee at the end. Meet at the Panhandle.',by:'mark',at:D(22,9),end:D(22,12),place:'Panhandle, Oak St',ll:[37.7726,-122.4430],resp:['tom']},
+ {id:12,kind:'event',cover:'c-event2',title:'Members’ meeting: daily income vote',detail:'Twenty minutes. The vote closes at the end.',by:'philip',at:D(25,19),end:D(25,20),place:'The Velvet Tavern, back room',ll:[37.7883,-122.4056],resp:['jane','ben','sara']},
+ {id:2,kind:'offer',cover:'c-offer',title:'Free: 4 monstera cuttings',detail:'Rooted, about a foot tall. Pick up from my porch any evening this week.',by:'sara',price:0,place:'Hayes Valley',ll:[37.7762,-122.4238],posted:D(15,19),resp:['mark']},
+ {id:4,kind:'offer',cover:'c-offer2',title:'Haircuts at my chair, Tuesdays',detail:'I’m a barber on Valencia. Union members pay in tokens, walk-ins 2 to 5pm.',by:'omar',price:25,place:'Valencia St, Mission',ll:[37.7609,-122.4216],posted:D(14,10),resp:['tom','ana']},
  {id:3,kind:'ask',cover:'c-ask',title:'Anyone have a tall ladder I can borrow Sunday?',detail:'Need to reach a gutter. 10 ft or taller. Back Monday with beer.',by:'ryan',place:null,posted:D(15,16),resp:[]},
  {id:8,kind:'ask',cover:'c-ask',title:'Spanish conversation partner',detail:'An hour a week over coffee. Tokens or trade English practice.',by:'ana',price:10,place:null,posted:D(13,9),resp:['kaliya']},
  {id:5,kind:'notice',cover:'c-notice',title:'Daily income goes to 2 tokens from Monday',detail:'The vote passed. Nothing to do, it just shows up.',by:'philip',posted:D(15,11),resp:[]},
@@ -171,13 +180,22 @@ function renderCal(){ const ev=posts.filter(p=>p.kind==='event'&&!isPast(p)).sor
   $('#pCal').innerHTML=Object.entries(days).map(([k,list])=>{ const d=list[0].at; const today=d.toDateString()===NOW.toDateString();
     return `<div class="day"><div class="d${today?' today':''}"><small>${d.toLocaleDateString([], {weekday:'short'})}</small><b>${d.getDate()}</b></div><div class="items">${list.map(p=>`<button class="row" onclick="openPost(${p.id})"><span class="sw ${p.cover}" style="font-size:12px">${fmtTime(p.at).replace(' ','<br>')}</span><span class="m"><b>${esc(p.title)}</b><span>${esc(p.place||'')}${mine(p)?' · you’re going':p.resp.length?` · ${p.resp.length} going`:''}</span></span></button>`).join('')}</div></div>`; }).join('')||'<div class="empty">Nothing on the calendar yet.</div>'; }
 function renderPast(){ const past=posts.filter(isPast).sort((a,b)=>(b.at||b.posted)-(a.at||a.posted)); $('#pPast').innerHTML=past.length?past.map(p=>cardHtml(p,true)).join(''):'<div class="empty">Nothing yet.</div>'; }
-function renderAll(){ renderExplore(); renderCal(); renderPast(); }
+let map, pins={};
+const COL={event:'#6a3fb5',offer:'#1f8a5b',ask:'#b7791f',notice:'#5f6b76'};
+function ensureMap(){ if(map||!window.L) return; map=L.map('map',{zoomControl:false}).setView([37.781,-122.418],13);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{attribution:'© OpenStreetMap, © CARTO',maxZoom:19}).addTo(map);
+  L.marker([37.7897,-122.4075],{icon:L.divIcon({className:'',html:'<div class="pin me"></div>',iconSize:[16,16],iconAnchor:[8,8]}),interactive:false}).addTo(map);
+  map.on('click',()=>{ $('#mapcard').classList.remove('on'); Object.values(pins).forEach(m=>m.getElement()?.querySelector('.pin')?.classList.remove('sel')); }); }
+function renderMap(){ if(!map) return; Object.values(pins).forEach(m=>map.removeLayer(m)); pins={};
+  posts.filter(p=>p.ll&&!isPast(p)).forEach(p=>{ const lab=p.kind==='event'?p.at.getDate():''; const m=L.marker(p.ll,{icon:L.divIcon({className:'',html:`<div class="pin" style="background:${COL[p.kind]}">${lab}</div>`,iconSize:[26,26],iconAnchor:[13,13]})}).addTo(map);
+    m.on('click',()=>{ Object.values(pins).forEach(x=>x.getElement()?.querySelector('.pin')?.classList.remove('sel')); m.getElement()?.querySelector('.pin')?.classList.add('sel'); $('#mapcard').innerHTML=cardHtml(p); $('#mapcard').classList.add('on'); map.panTo(p.ll,{animate:true}); }); pins[p.id]=m; }); }
+function renderAll(){ renderExplore(); renderCal(); renderPast(); renderMap(); }
 // tabs + swipe
 let tab=0;
 function placeInk(){ const b=$('#tabs').children[tab]; const ink=$('#ink'); ink.style.left=b.offsetLeft+10+'px'; ink.style.width=(b.offsetWidth-20)+'px'; }
 function setTab(i){ tab=i; [...$('#tabs').querySelectorAll('button')].forEach((b,j)=>b.classList.toggle('on',j===i)); placeInk(); }
-function goTab(i){ setTab(i); $('#panels').scrollTo({left:i*$('#panels').clientWidth,behavior:'smooth'}); }
-$('#panels').addEventListener('scroll',()=>{ const i=Math.round($('#panels').scrollLeft/$('#panels').clientWidth); if(i!==tab) setTab(i); });
+function goTab(i){ setTab(i); $('#panels').scrollTo({left:i*$('#panels').clientWidth,behavior:'smooth'}); if(i===3){ ensureMap(); setTimeout(()=>{ map&&map.invalidateSize(); renderMap(); },350); } }
+$('#panels').addEventListener('scroll',()=>{ const i=Math.round($('#panels').scrollLeft/$('#panels').clientWidth); if(i!==tab){ setTab(i); if(i===3){ ensureMap(); setTimeout(()=>{ map&&map.invalidateSize(); renderMap(); },350); } } });
 window.addEventListener('resize',placeInk);
 // detail
 function openPost(id){ const p=posts.find(x=>x.id===id); const ev=p.kind==='event'; const past=isPast(p); const k=K[p.kind];
@@ -185,7 +203,7 @@ function openPost(id){ const p=posts.find(x=>x.id===id); const ev=p.kind==='even
   $('#sheet').innerHTML=`<div class="cover ${p.cover}${past?' c-past':''}"><div class="deco"></div><div class="grab"></div><h3>${esc(p.title)}</h3></div>
    <div class="sh-body">
     <div class="host"><span class="av">${esc(ini(people[p.by]))}</span><div><b>${esc(people[p.by])}</b><span>${ev?'is hosting':p.kind==='ask'?'is asking':'posted this'}${p.posted?` · ${fmtDate(p.posted)}`:''}</span></div></div>
-    <div class="facts">${ev?`<div class="fact">${I.cal}${fmtDate(p.at)} · ${fmtTime(p.at)} to ${fmtTime(p.end)}</div>`:''}${p.place?`<div class="fact">${I.pin}${esc(p.place)}</div>`:''}${p.price!=null?`<div class="fact">${I.tok}${p.price===0?'Free':p.price+' tokens, paid in the app'}</div>`:''}</div>
+    <div class="facts">${ev?`<div class="fact">${I.cal}${fmtDate(p.at)} · ${fmtTime(p.at)} to ${fmtTime(p.end)}</div>`:''}${p.place?`<div class="fact"${p.ll?` style="cursor:pointer" onclick="closeSheet(); goTab(3); setTimeout(()=>{ map.setView(${JSON.stringify(p.ll)},15,{animate:true}); pins[${p.id}]?.fire('click'); },420)"`:''}>${I.pin}${esc(p.place)}${p.ll?' <span style="color:var(--brand);font-weight:600;margin-left:auto">Map ›</span>':''}</div>`:''}${p.price!=null?`<div class="fact">${I.tok}${p.price===0?'Free':p.price+' tokens, paid in the app'}</div>`:''}</div>
     <p class="desc">${esc(p.detail)}</p>
     ${p.resp.length?`<div class="going"><span class="s">${p.resp.slice(0,5).map(r=>`<span class="av">${esc(ini(people[r]))}</span>`).join('')}</span>${p.resp.map(first).slice(0,2).join(', ')}${p.resp.length>2?` and ${p.resp.length-2} more`:''} ${ev?'going':p.kind==='ask'?'can help':'interested'}</div>`:''}
     ${past?`<div class="btns"><button class="btn ghost" style="flex:1" onclick="closeSheet()">${p.done?'This one’s done':'This one’s over'}</button></div>`:
