@@ -36,6 +36,7 @@ async function switchTab(tabName) {
         case 'members': await renderMembersTab(); break;
         case 'governance': await renderGovernanceTab(); break;
         case 'commons': await renderCommonsTab(); break;
+        case 'board': await renderBoardTab(); break;
         case 'chat': await renderChatTab(); break;
     }
     if (typeof refreshLucideIcons === 'function') refreshLucideIcons();
