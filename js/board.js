@@ -13,6 +13,21 @@ const BOARD_KINDS = {
     ask:    { label: 'Ask',    verb: 'I can help',   done: 'You offered',      who: 'can help',   cover: 'bd-c-ask' },
     notice: { label: 'Notice', verb: 'Got it',       done: 'Seen',             who: 'seen',       cover: 'bd-c-notice' },
 };
+const BOARD_CATS = {
+    family:    { name: 'Family',         icon: 'home',            color: '#8e44ad' },
+    food:      { name: 'Food & Drink',   icon: 'utensils',        color: '#e67e22' },
+    arts:      { name: 'Arts & Culture', icon: 'palette',         color: '#b7791f' },
+    music:     { name: 'Music',          icon: 'music',           color: '#c2185b' },
+    tech:      { name: 'Tech & AI',      icon: 'laptop',          color: '#2d5f7d' },
+    games:     { name: 'Games',          icon: 'dice-5',          color: '#a0522d' },
+    outdoors:  { name: 'Outdoors',       icon: 'mountain',        color: '#167a52' },
+    fitness:   { name: 'Fitness',        icon: 'dumbbell',        color: '#1f8a5b' },
+    wellness:  { name: 'Wellness',       icon: 'leaf',            color: '#0f8b8d' },
+    learning:  { name: 'Learning',       icon: 'book-open',       color: '#1f3a93' },
+    community: { name: 'Community',      icon: 'users',           color: '#5f6b76' },
+    market:    { name: 'Buy & Sell',     icon: 'shopping-bag',    color: '#6a3fb5' },
+    help:      { name: 'Help & Favors',  icon: 'heart-handshake', color: '#d35400' },
+};
 const BOARD_PIN = { event: '#6a3fb5', offer: '#1f8a5b', ask: '#b7791f', notice: '#5f6b76' };
 
 const bdDate = d => new Date(d).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
@@ -49,15 +64,17 @@ async function renderBoardTab() {
             <div class="bd-tabs" id="bdTabs">
                 <button onclick="bdGoTab(0)">Explore</button>
                 <button onclick="bdGoTab(1)">Calendar<span class="count" id="bdCalCount"></span></button>
-                <button onclick="bdGoTab(2)">Past</button>
-                <button onclick="bdGoTab(3)">Map</button>
+                <button onclick="bdGoTab(2)">Map</button>
+                <button onclick="bdGoTab(3)">Discover</button>
+                <button onclick="bdGoTab(4)">Past</button>
                 <span class="ink" id="bdInk"></span>
             </div>
             <div class="bd-panels" id="bdPanels">
                 <div class="bd-panel" id="bdExplore"><p class="bd-empty">Loading…</p></div>
                 <div class="bd-panel" id="bdCal"></div>
-                <div class="bd-panel" id="bdPast"></div>
                 <div class="bd-panel bd-panel-map" id="bdMapPanel"><div id="bdMap"></div><div class="bd-mapcard" id="bdMapCard"></div></div>
+                <div class="bd-panel" id="bdDiscover"><p class="bd-empty">Loading…</p></div>
+                <div class="bd-panel" id="bdPast"></div>
             </div>
             <button class="bd-fab" onclick="openBoardCompose()"><i data-lucide="plus" aria-hidden="true"></i>Post</button>
         </div>`;
@@ -65,13 +82,14 @@ async function renderBoardTab() {
     const panels = document.getElementById('bdPanels');
     panels.addEventListener('scroll', () => {
         const i = Math.round(panels.scrollLeft / panels.clientWidth);
-        if (i !== boardTab) { bdSetTab(i); if (i === 3) bdShowMap(); }
+        if (i !== boardTab) { bdSetTab(i); if (i === 2) bdShowMap(); if (i === 3) loadDiscover(); }
     });
     bdSetTab(boardTab);
     if (boardTab) panels.scrollLeft = boardTab * panels.clientWidth;
     if (typeof refreshLucideIcons === 'function') refreshLucideIcons();
     await loadBoard();
-    if (boardTab === 3) bdShowMap();
+    if (boardTab === 2) bdShowMap();
+    if (boardTab === 3) loadDiscover();
 }
 
 async function loadBoard() {
@@ -137,13 +155,14 @@ function bdSetTab(i) {
     const btns = [...tabs.querySelectorAll('button')];
     btns.forEach((b, j) => b.classList.toggle('on', j === i));
     const b = btns[i], ink = document.getElementById('bdInk');
-    if (b && ink) { ink.style.left = (b.offsetLeft + 10) + 'px'; ink.style.width = (b.offsetWidth - 20) + 'px'; }
+    if (b && ink) { ink.style.left = (b.offsetLeft + 10) + 'px'; ink.style.width = (b.offsetWidth - 20) + 'px'; b.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' }); }
 }
 function bdGoTab(i) {
     bdSetTab(i);
     const panels = document.getElementById('bdPanels');
     panels.scrollTo({ left: i * panels.clientWidth, behavior: 'smooth' });
-    if (i === 3) bdShowMap();
+    if (i === 2) bdShowMap();
+    if (i === 3) loadDiscover();
 }
 
 // ---------- map ----------
@@ -177,8 +196,54 @@ function bdRenderPins() {
 }
 function bdShowPostOnMap(id) {
     const p = boardPosts.find(x => x.id === id); if (!p || !p.lat) return;
-    closeModal(); bdGoTab(3);
+    closeModal(); bdGoTab(2);
     setTimeout(() => { boardMap.setView([p.lat, p.lng], 15, { animate: true }); boardPins[id]?.fire('click'); }, 420);
+}
+
+// ---------- discover: across all my groups ----------
+let discoverPosts = [];
+let discoverCat = null;
+async function loadDiscover() {
+    const el = document.getElementById('bdDiscover'); if (!el) return;
+    const { data, error } = await db.rpc('list_board_all');
+    if (error) { el.innerHTML = `<p class="bd-empty">${/list_board_all/.test(error.message) ? 'Discover is not set up on this server yet (re-run sql/board-schema.sql).' : 'Could not load.'}</p>`; return; }
+    discoverPosts = data || [];
+    renderDiscover();
+}
+function bdCatCount(k) { return discoverPosts.filter(p => (p.category || 'community') === k).length; }
+function renderDiscover() {
+    const el = document.getElementById('bdDiscover'); if (!el) return;
+    const groups = [...new Set(discoverPosts.map(p => p.group_name))];
+    if (discoverCat) {
+        const c = BOARD_CATS[discoverCat]; const list = discoverPosts.filter(p => (p.category || 'community') === discoverCat);
+        el.innerHTML = `<button class="bd-back" onclick="discoverCat=null; renderDiscover()"><i data-lucide="chevron-left" aria-hidden="true"></i>Discover</button>
+            <div class="bd-dh"><span class="bd-cat-ic" style="color:${c.color};background:${c.color}18"><i data-lucide="${c.icon}" aria-hidden="true"></i></span><div><h3>${esc(c.name)}</h3><small>${list.length} across ${groups.length} group${groups.length === 1 ? '' : 's'}</small></div></div>
+            ${list.length ? list.map(p => bdDiscoverCard(p)).join('') : '<div class="bd-empty">Nothing in this category right now.</div>'}`;
+    } else {
+        const soon = discoverPosts.filter(p => p.kind === 'event' && p.starts_at).sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)).slice(0, 4);
+        el.innerHTML = `<div class="bd-dhero"><h2>Discover</h2><p>What’s happening across ${groups.length === 1 ? 'your group' : `your ${groups.length} groups`}. Browse by category, or see what’s coming up.</p></div>
+            <div class="bd-sec">Browse by category</div>
+            <div class="bd-cats">${Object.entries(BOARD_CATS).map(([k, c]) => { const n = bdCatCount(k); return `<button class="bd-cat${n ? '' : ' empty'}" onclick="discoverCat='${k}'; renderDiscover()"><span class="bd-cat-ic" style="color:${c.color};background:${c.color}18"><i data-lucide="${c.icon}" aria-hidden="true"></i></span><span><b>${esc(c.name)}</b><small>${n} ${n === 1 ? 'post' : 'posts'}</small></span></button>`; }).join('')}</div>
+            ${soon.length ? `<div class="bd-sec" style="margin-top:18px">Coming up</div>${soon.map(p => bdDiscoverCard(p)).join('')}` : ''}
+            ${!discoverPosts.length ? '<div class="bd-empty">Nothing posted in any of your groups yet. Be the first.</div>' : ''}`;
+    }
+    if (typeof refreshLucideIcons === 'function') refreshLucideIcons();
+}
+function bdDiscoverCard(p) {
+    const ev = p.kind === 'event'; const d = ev && p.starts_at ? new Date(p.starts_at) : null;
+    const price = p.price == null ? '' : (Number(p.price) === 0 ? 'Free' : `${p.currency_symbol || ''} ${Number(p.price)}`);
+    return `<button class="bd-card" onclick="openDiscoverPost('${p.id}')">
+        <div class="bd-cover ${bdCoverClass(p)}"${bdCoverStyle(p)}><div class="deco"></div>
+            ${d ? `<div class="date"><small>${d.toLocaleDateString([], { month: 'short' })}</small><b>${d.getDate()}</b></div>` : ''}
+            ${price ? `<div class="pill">${esc(price)}</div>` : ''}
+            <h3>${esc(p.title)}</h3></div>
+        <div class="bd-meta">${bdAvatar(p.author_name, p.author_image)}<span class="t"><b>${esc(p.group_name)}</b> · ${d ? `${bdDate(d)}, ${bdTime(d)}` : esc(bdPlaceLabel(p) || BOARD_KINDS[p.kind].label)}</span>${bdFaces(p)}</div>
+    </button>`;
+}
+function openDiscoverPost(id) {
+    const p = discoverPosts.find(x => x.id === id); if (!p) return;
+    if (!boardPosts.find(x => x.id === id)) boardPosts.push(p);   // so the shared detail sheet can find it
+    openBoardPost(id);
 }
 
 // ---------- detail ----------
@@ -192,12 +257,13 @@ function openBoardPost(id) {
     body.innerHTML = `
         <div class="bd-cover big ${bdCoverClass(p)}${past ? ' past' : ''}"${bdCoverStyle(p)}><div class="deco"></div><h3>${esc(p.title)}</h3></div>
         <div class="bd-sh">
-            <div class="bd-host">${bdAvatar(p.author_name, p.author_image, 'lg')}<div><b>${esc(p.author_name)}</b><span>${ev ? 'is hosting' : p.kind === 'ask' ? 'is asking' : 'posted this'} · ${bdDate(p.created_at)}</span></div></div>
+            <div class="bd-host">${bdAvatar(p.author_name, p.author_image, 'lg')}<div><b>${esc(p.author_name)}</b><span>${ev ? 'is hosting' : p.kind === 'ask' ? 'is asking' : 'posted this'}${p.group_name && p.group_id !== selectedGroup?.id ? ` in ${esc(p.group_name)}` : ''} · ${bdDate(p.created_at)}</span></div></div>
             <div class="bd-facts">
                 ${ev && p.starts_at ? `<div class="f"><i data-lucide="calendar" aria-hidden="true"></i>${bdDate(p.starts_at)} · ${bdTime(p.starts_at)}${p.ends_at ? ' to ' + bdTime(p.ends_at) : ''}</div>` : ''}
                 ${p.place_name ? (bdIsLink(p.place_name)
                     ? `<a class="f" href="${esc(p.place_name)}" target="_blank" rel="noopener"><i data-lucide="video" aria-hidden="true"></i>Online · ${esc(p.place_name.replace(/^https?:\/\//, '').split('/')[0])}<span class="go">Open ›</span></a>`
                     : `<div class="f"${p.lat ? ` onclick="bdShowPostOnMap('${p.id}')"` : ''}><i data-lucide="map-pin" aria-hidden="true"></i>${esc(p.place_name)}${p.lat ? '<span class="go">Map ›</span>' : ''}</div>`) : ''}
+                ${p.category && BOARD_CATS[p.category] ? `<div class="f"><i data-lucide="${BOARD_CATS[p.category].icon}" aria-hidden="true"></i>${esc(BOARD_CATS[p.category].name)}</div>` : ''}
                 ${bdPrice(p) ? `<div class="f"><i data-lucide="coins" aria-hidden="true"></i>${esc(bdPrice(p))}${Number(p.price) ? ` ${esc(selectedGroup.currency_name || 'credits')}, paid in the app` : ''}</div>` : ''}
             </div>
             ${p.detail ? `<p class="bd-desc">${esc(p.detail)}</p>` : ''}
@@ -271,6 +337,7 @@ let bdKind = 'event';
 let bdCoverFile = null;      // uploaded photo (File)
 let bdCoverTheme = 'dusk';   // selected built-in theme, ignored when a photo is set
 let bdLocMode = 'place';     // 'place' | 'online'
+let bdCat = null;            // optional category key
 function bdTzLabel() {
     try { const parts = new Intl.DateTimeFormat([], { timeZoneName: 'short' }).formatToParts(new Date()); const tz = parts.find(x => x.type === 'timeZoneName')?.value || ''; const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; return `${zone.replace(/_/g, ' ')}${tz ? ' (' + tz + ')' : ''}`; } catch (_) { return 'your local time'; }
 }
@@ -279,7 +346,7 @@ function bdTimeInput(d) { const z = n => String(n).padStart(2, '0'); return `${z
 function openBoardCompose() {
     const body = document.getElementById('modalBody'); const overlay = document.getElementById('modalOverlay');
     body.classList.remove('beta-ios-modal'); body.classList.add('bd-sheet', 'bd-keep'); body.style.removeProperty('--bd-accent');
-    bdCoverFile = null; bdCoverTheme = BOARD_DEFAULT_THEME[bdKind]; bdLocMode = 'place';
+    bdCoverFile = null; bdCoverTheme = BOARD_DEFAULT_THEME[bdKind]; bdLocMode = 'place'; bdCat = null;
     const start = new Date(); start.setDate(start.getDate() + 1); start.setHours(18, 0, 0, 0);
     const end = new Date(start); end.setHours(21);
     body.innerHTML = `
@@ -287,6 +354,7 @@ function openBoardCompose() {
         <div class="bd-sh">
             <div class="bd-kinds" id="bdKinds"></div>
             <div class="bd-covers" id="bdCovers"></div>
+            <div class="bd-catrow" id="bdCatRow"></div>
             <input class="bd-f big" id="bdTitle" placeholder="Title" maxlength="120" oninput="bdPreviewUpdate()">
             <textarea class="bd-f" id="bdDetail" rows="2" placeholder="A line or two (optional)" maxlength="1000"></textarea>
             <div id="bdEvF" class="bd-when">
@@ -303,7 +371,7 @@ function openBoardCompose() {
             <p class="bd-hint">Everyone in ${esc(selectedGroup.name)} sees it and gets a notification. It moves to Past when it’s over or you mark it done.</p>
             <button class="bd-btn" style="width:100%" id="bdPostBtn" onclick="submitBoardPost()">Post</button>
         </div>`;
-    bdRenderKinds(); bdRenderCovers(); bdPreviewUpdate();
+    bdRenderKinds(); bdRenderCovers(); bdRenderCats(); bdPreviewUpdate();
     overlay.classList.remove('hidden');
     if (typeof refreshLucideIcons === 'function') refreshLucideIcons();
     setTimeout(() => document.getElementById('bdTitle')?.focus(), 250);
@@ -320,6 +388,11 @@ function bdRenderCovers() {
     const el = document.getElementById('bdCovers'); if (!el) return;
     el.innerHTML = `<label class="bd-tile upload${bdCoverFile ? ' on' : ''}" title="Your photo"><input type="file" accept="image/*" onchange="bdPickCover(this)" hidden>${bdCoverFile ? `<img src="${URL.createObjectURL(bdCoverFile)}" alt="">` : '<i data-lucide="image-plus" aria-hidden="true"></i><small>Photo</small>'}</label>` +
         Object.entries(BOARD_THEMES).map(([k, t]) => `<button type="button" class="bd-tile pat-${t.pat}${t.dark ? ' dark' : ''}${!bdCoverFile && bdCoverTheme === k ? ' on' : ''}" style="background:${t.bg}" onclick="bdChooseTheme('${k}')" title="${t.name}"><small>${t.name}</small></button>`).join('');
+    if (typeof refreshLucideIcons === 'function') refreshLucideIcons();
+}
+function bdRenderCats() {
+    const el = document.getElementById('bdCatRow'); if (!el) return;
+    el.innerHTML = `<span class="lab">Category</span>` + Object.entries(BOARD_CATS).map(([k, c]) => `<button type="button" class="${bdCat === k ? 'on' : ''}" style="${bdCat === k ? `background:${c.color};border-color:${c.color}` : ''}" onclick="bdCat = bdCat === '${k}' ? null : '${k}'; bdRenderCats()"><i data-lucide="${c.icon}" aria-hidden="true"></i>${esc(c.name)}</button>`).join('');
     if (typeof refreshLucideIcons === 'function') refreshLucideIcons();
 }
 function bdChooseTheme(k) { bdCoverTheme = k; bdCoverFile = null; bdRenderCovers(); bdPreviewUpdate(); }
@@ -354,7 +427,7 @@ async function submitBoardPost() {
     if (!title) { showToast('Give it a title', 'error'); return; }
     const btn = document.getElementById('bdPostBtn'); const fail = m => { showToast(m, 'error'); btn.disabled = false; btn.textContent = 'Post'; };
     btn.disabled = true; btn.textContent = 'Posting…';
-    const row = { group_id: selectedGroup.id, author_id: currentUser.id, kind: bdKind, title, detail: document.getElementById('bdDetail').value.trim() || null, place_name: null };
+    const row = { group_id: selectedGroup.id, author_id: currentUser.id, kind: bdKind, title, detail: document.getElementById('bdDetail').value.trim() || null, place_name: null, category: bdCat };
     if (bdLocMode === 'online') { const link = document.getElementById('bdLink').value.trim(); if (link && !/^https?:\/\//i.test(link)) return fail('The link should start with https://'); row.place_name = link || null; }
     else row.place_name = document.getElementById('bdPlace').value.trim() || null;
     if (bdKind === 'event') {

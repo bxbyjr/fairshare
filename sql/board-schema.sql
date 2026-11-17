@@ -14,12 +14,14 @@ create table if not exists public.group_posts (
   lng         double precision,
   starts_at   timestamptz,          -- events
   ends_at     timestamptz,          -- events
-  image_url   text,                 -- optional cover photo (storage public URL)
+  image_url   text,                 -- cover: photo URL, or theme:<key>
+  category    text,                 -- optional: family, food, arts, music, tech, games, outdoors, fitness, wellness, learning, community, market, help
   status      text not null default 'open' check (status in ('open','done','removed')),
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
 alter table public.group_posts add column if not exists image_url text;
+alter table public.group_posts add column if not exists category text;
 create index if not exists group_posts_group_idx on public.group_posts (group_id, status, created_at desc);
 
 create table if not exists public.post_responses (
@@ -57,11 +59,11 @@ drop function if exists public.list_board(uuid);
 create or replace function public.list_board(p_group_id uuid)
 returns table (
   id uuid, kind text, title text, detail text, price numeric, place_name text, lat double precision, lng double precision,
-  starts_at timestamptz, ends_at timestamptz, status text, created_at timestamptz, image_url text,
+  starts_at timestamptz, ends_at timestamptz, status text, created_at timestamptz, image_url text, category text,
   author_id uuid, author_name text, author_image text,
   responders jsonb, i_responded boolean
 ) language sql security definer stable as $$
-  select p.id, p.kind, p.title, p.detail, p.price, p.place_name, p.lat, p.lng, p.starts_at, p.ends_at, p.status, p.created_at, p.image_url,
+  select p.id, p.kind, p.title, p.detail, p.price, p.place_name, p.lat, p.lng, p.starts_at, p.ends_at, p.status, p.created_at, p.image_url, p.category,
          p.author_id, coalesce(a.display_name, 'Member'), a.profile_image_url,
          coalesce((select jsonb_agg(jsonb_build_object('id', r.user_id, 'name', coalesce(rp.display_name,'Member'), 'image', rp.profile_image_url) order by r.created_at)
                    from public.post_responses r join public.profiles rp on rp.id = r.user_id where r.post_id = p.id), '[]'::jsonb),
@@ -72,6 +74,32 @@ returns table (
   order by p.created_at desc;
 $$;
 grant execute on function public.list_board(uuid) to authenticated;
+
+-- Discover: everything open across all the groups I am in.
+drop function if exists public.list_board_all();
+create or replace function public.list_board_all()
+returns table (
+  id uuid, kind text, title text, detail text, price numeric, place_name text, lat double precision, lng double precision,
+  starts_at timestamptz, ends_at timestamptz, status text, created_at timestamptz, image_url text, category text,
+  author_id uuid, author_name text, author_image text,
+  responders jsonb, i_responded boolean,
+  group_id uuid, group_name text, currency_symbol text
+) language sql security definer stable as $$
+  select p.id, p.kind, p.title, p.detail, p.price, p.place_name, p.lat, p.lng, p.starts_at, p.ends_at, p.status, p.created_at, p.image_url, p.category,
+         p.author_id, coalesce(a.display_name, 'Member'), a.profile_image_url,
+         coalesce((select jsonb_agg(jsonb_build_object('id', r.user_id, 'name', coalesce(rp.display_name,'Member'), 'image', rp.profile_image_url) order by r.created_at)
+                   from public.post_responses r join public.profiles rp on rp.id = r.user_id where r.post_id = p.id), '[]'::jsonb),
+         exists (select 1 from public.post_responses r where r.post_id = p.id and r.user_id = auth.uid()),
+         g.id, g.name, g.currency_symbol
+  from public.group_posts p
+  join public.groups g on g.id = p.group_id
+  join public.profiles a on a.id = p.author_id
+  where p.status = 'open'
+    and exists (select 1 from public.members m where m.group_id = p.group_id and m.user_id = auth.uid() and m.status = 'active')
+    and (p.ends_at is null or p.ends_at > now())
+  order by coalesce(p.starts_at, p.created_at);
+$$;
+grant execute on function public.list_board_all() to authenticated;
 
 -- Tell the group when something is posted (reuses the existing push + event feed).
 create or replace function public.board_post_notify()
