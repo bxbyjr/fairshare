@@ -53,6 +53,7 @@ create policy "members unrespond" on public.post_responses
   for delete using (user_id = auth.uid());
 
 -- One call returns the board for a group: posts, author, responders, whether I'm in.
+drop function if exists public.list_board(uuid);
 create or replace function public.list_board(p_group_id uuid)
 returns table (
   id uuid, kind text, title text, detail text, price numeric, place_name text, lat double precision, lng double precision,
