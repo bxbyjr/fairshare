@@ -221,7 +221,10 @@ function renderDiscover() {
             ${list.length ? list.map(p => bdDiscoverCard(p)).join('') : '<div class="bd-empty">Nothing in this category right now.</div>'}`;
     } else {
         const soon = discoverPosts.filter(p => p.kind === 'event' && p.starts_at).sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)).slice(0, 4);
-        el.innerHTML = `<div class="bd-dhero"><h2>Discover</h2><p>What’s happening across ${groups.length === 1 ? 'your group' : `your ${groups.length} groups`}. Browse by category, or see what’s coming up.</p></div>
+        // Floating posters: the next few things, drifting like a pinboard.
+        const wall = (soon.length ? soon : discoverPosts.slice(0, 4)).slice(0, 4);
+        const poster = (p, i) => `<button class="bd-poster p${i}" onclick="openDiscoverPost('${p.id}')"><span class="bd-cover ${bdCoverClass(p)}"${bdCoverStyle(p)}><span class="deco"></span><span class="pt">${esc(p.title)}</span></span></button>`;
+        el.innerHTML = `<div class="bd-wall${wall.length ? '' : ' empty'}">${wall.map(poster).join('')}<div class="bd-wall-text"><h2>What’s happening</h2><p>${groups.length ? `across ${groups.length === 1 ? 'your group' : `your ${groups.length} groups`}` : 'in your groups'}</p></div></div>
             <div class="bd-sec">Browse by category</div>
             <div class="bd-cats">${Object.entries(BOARD_CATS).map(([k, c]) => { const n = bdCatCount(k); return `<button class="bd-cat${n ? '' : ' empty'}" onclick="discoverCat='${k}'; renderDiscover()"><span class="bd-cat-ic" style="color:${c.color};background:${c.color}18"><i data-lucide="${c.icon}" aria-hidden="true"></i></span><span><b>${esc(c.name)}</b><small>${n} ${n === 1 ? 'post' : 'posts'}</small></span></button>`; }).join('')}</div>
             ${soon.length ? `<div class="bd-sec" style="margin-top:18px">Coming up</div>${soon.map(p => bdDiscoverCard(p)).join('')}` : ''}
