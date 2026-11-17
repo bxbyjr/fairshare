@@ -124,6 +124,11 @@ async function renderGovernanceTab() {
     `;
 
     await Promise.all([loadConstitutionContent(), loadStatsContent()]);
+    // Shared document (was its own Commons tab)
+    if (content && !document.getElementById('groupDocContent')) {
+        content.insertAdjacentHTML('beforeend', `<h4 style="color:var(--accent-color);margin:1.5rem 0 0.5rem;">Shared Document</h4><div id="groupDocContent"><p style="color:var(--dark-gray);">Loading…</p></div>`);
+        if (typeof loadGroupDocument === 'function') await loadGroupDocument();
+    }
 }
 
 async function renderCommonsTab() {

@@ -14,10 +14,12 @@ create table if not exists public.group_posts (
   lng         double precision,
   starts_at   timestamptz,          -- events
   ends_at     timestamptz,          -- events
+  image_url   text,                 -- optional cover photo (storage public URL)
   status      text not null default 'open' check (status in ('open','done','removed')),
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
+alter table public.group_posts add column if not exists image_url text;
 create index if not exists group_posts_group_idx on public.group_posts (group_id, status, created_at desc);
 
 create table if not exists public.post_responses (
@@ -54,11 +56,11 @@ create policy "members unrespond" on public.post_responses
 create or replace function public.list_board(p_group_id uuid)
 returns table (
   id uuid, kind text, title text, detail text, price numeric, place_name text, lat double precision, lng double precision,
-  starts_at timestamptz, ends_at timestamptz, status text, created_at timestamptz,
+  starts_at timestamptz, ends_at timestamptz, status text, created_at timestamptz, image_url text,
   author_id uuid, author_name text, author_image text,
   responders jsonb, i_responded boolean
 ) language sql security definer stable as $$
-  select p.id, p.kind, p.title, p.detail, p.price, p.place_name, p.lat, p.lng, p.starts_at, p.ends_at, p.status, p.created_at,
+  select p.id, p.kind, p.title, p.detail, p.price, p.place_name, p.lat, p.lng, p.starts_at, p.ends_at, p.status, p.created_at, p.image_url,
          p.author_id, coalesce(a.display_name, 'Member'), a.profile_image_url,
          coalesce((select jsonb_agg(jsonb_build_object('id', r.user_id, 'name', coalesce(rp.display_name,'Member'), 'image', rp.profile_image_url) order by r.created_at)
                    from public.post_responses r join public.profiles rp on rp.id = r.user_id where r.post_id = p.id), '[]'::jsonb),
