@@ -21,8 +21,10 @@ const bdFirst = n => (n || 'Member').split(' ')[0];
 const bdIni = n => (n || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 const bdIsPast = p => p.status === 'done' || (p.ends_at && new Date(p.ends_at) < new Date()) || (p.kind === 'event' && !p.ends_at && p.starts_at && new Date(p.starts_at) < Date.now() - 3 * 3600e3);
 const bdMine = p => !!p.i_responded;
-const bdCoverClass = p => BOARD_KINDS[p.kind].cover + ((parseInt(String(p.id).replace(/-/g, '').slice(0, 6), 16) % 2) ? ' alt' : '') + (p.image_url ? ' has-img' : '');
-const bdCoverStyle = p => p.image_url ? ` style="background-image:url('${esc(p.image_url)}')"` : '';
+const bdIsLink = v => /^https?:\/\//i.test(v || '');
+const bdPlaceLabel = p => bdIsLink(p.place_name) ? 'Online' : p.place_name;
+const bdCoverClass = p => bdCoverAttrs(p).cls;
+const bdCoverStyle = p => ` style="${bdCoverAttrs(p).style}"`;
 
 function bdAvatar(name, image, cls) {
     return image ? `<img class="bd-av ${cls || ''}" src="${esc(image)}" alt="">` : `<span class="bd-av ${cls || ''}">${esc(bdIni(name))}</span>`;
@@ -95,12 +97,12 @@ function bdCard(p, past) {
             ${past ? `<div class="pill">${p.status === 'done' ? 'Done' : 'Ended'}</div>` : (ev && bdMine(p) ? '<div class="pill">✓ Going</div>' : '')}
             <h3>${esc(p.title)}</h3>
         </div>
-        <div class="bd-meta">${bdAvatar(p.author_name, p.author_image)}<span class="t"><b>${esc(bdFirst(p.author_name))}</b> · ${d ? `${bdDate(d)}, ${bdTime(d)}` : esc(p.place_name || BOARD_KINDS[p.kind].label)}</span>${bdFaces(p)}</div>
+        <div class="bd-meta">${bdAvatar(p.author_name, p.author_image)}<span class="t"><b>${esc(bdFirst(p.author_name))}</b> · ${d ? `${bdDate(d)}, ${bdTime(d)}` : esc(bdPlaceLabel(p) || BOARD_KINDS[p.kind].label)}</span>${bdFaces(p)}</div>
     </button>`;
 }
 function bdRow(p) {
     const g = { offer: 'gift', ask: 'hand', notice: 'pin' }[p.kind] || 'circle';
-    const sub = [bdFirst(p.author_name), p.place_name, (p.responders || []).length ? `${p.responders.length} ${BOARD_KINDS[p.kind].who}` : null].filter(Boolean).join(' · ');
+    const sub = [bdFirst(p.author_name), bdPlaceLabel(p), (p.responders || []).length ? `${p.responders.length} ${BOARD_KINDS[p.kind].who}` : null].filter(Boolean).join(' · ');
     return `<button class="bd-row" onclick="openBoardPost('${p.id}')"><span class="sw" style="background:${BOARD_PIN[p.kind]}"><i data-lucide="${g}" aria-hidden="true"></i></span><span class="m"><b>${esc(p.title)}</b><span>${esc(sub)}</span></span>${bdPrice(p) ? `<span class="price">${esc(bdPrice(p))}</span>` : ''}</button>`;
 }
 function bdRenderAll() {
@@ -119,7 +121,7 @@ function bdRenderAll() {
     document.getElementById('bdCal').innerHTML = Object.entries(days).map(([k, list]) => {
         const d = list[0].starts_at ? new Date(list[0].starts_at) : null;
         const today = d && d.toDateString() === new Date().toDateString();
-        return `<div class="bd-day"><div class="d${today ? ' today' : ''}">${d ? `<small>${d.toLocaleDateString([], { weekday: 'short' })}</small><b>${d.getDate()}</b>` : '<small>TBD</small>'}</div><div class="items">${list.map(p => `<button class="bd-row" onclick="openBoardPost('${p.id}')"><span class="sw ${bdCoverClass(p)} time">${p.starts_at ? bdTime(p.starts_at).replace(' ', '<br>') : '?'}</span><span class="m"><b>${esc(p.title)}</b><span>${esc(p.place_name || '')}${bdMine(p) ? ' · you’re going' : (p.responders || []).length ? ` · ${p.responders.length} going` : ''}</span></span></button>`).join('')}</div></div>`;
+        return `<div class="bd-day"><div class="d${today ? ' today' : ''}">${d ? `<small>${d.toLocaleDateString([], { weekday: 'short' })}</small><b>${d.getDate()}</b>` : '<small>TBD</small>'}</div><div class="items">${list.map(p => `<button class="bd-row" onclick="openBoardPost('${p.id}')"><span class="sw ${bdCoverClass(p)} time">${p.starts_at ? bdTime(p.starts_at).replace(' ', '<br>') : '?'}</span><span class="m"><b>${esc(p.title)}</b><span>${esc(bdPlaceLabel(p) || '')}${bdMine(p) ? ' · you’re going' : (p.responders || []).length ? ` · ${p.responders.length} going` : ''}</span></span></button>`).join('')}</div></div>`;
     }).join('') || '<div class="bd-empty">Nothing on the calendar yet.</div>';
     // past
     const past = boardPosts.filter(bdIsPast);
@@ -186,13 +188,16 @@ function openBoardPost(id) {
     const body = document.getElementById('modalBody'); const overlay = document.getElementById('modalOverlay');
     body.classList.remove('beta-ios-modal'); body.classList.add('bd-sheet');
     const r = p.responders || [];
+    body.style.setProperty('--bd-accent', bdAccent(p));
     body.innerHTML = `
         <div class="bd-cover big ${bdCoverClass(p)}${past ? ' past' : ''}"${bdCoverStyle(p)}><div class="deco"></div><h3>${esc(p.title)}</h3></div>
         <div class="bd-sh">
             <div class="bd-host">${bdAvatar(p.author_name, p.author_image, 'lg')}<div><b>${esc(p.author_name)}</b><span>${ev ? 'is hosting' : p.kind === 'ask' ? 'is asking' : 'posted this'} · ${bdDate(p.created_at)}</span></div></div>
             <div class="bd-facts">
                 ${ev && p.starts_at ? `<div class="f"><i data-lucide="calendar" aria-hidden="true"></i>${bdDate(p.starts_at)} · ${bdTime(p.starts_at)}${p.ends_at ? ' to ' + bdTime(p.ends_at) : ''}</div>` : ''}
-                ${p.place_name ? `<div class="f"${p.lat ? ` onclick="bdShowPostOnMap('${p.id}')"` : ''}><i data-lucide="map-pin" aria-hidden="true"></i>${esc(p.place_name)}${p.lat ? '<span class="go">Map ›</span>' : ''}</div>` : ''}
+                ${p.place_name ? (bdIsLink(p.place_name)
+                    ? `<a class="f" href="${esc(p.place_name)}" target="_blank" rel="noopener"><i data-lucide="video" aria-hidden="true"></i>Online · ${esc(p.place_name.replace(/^https?:\/\//, '').split('/')[0])}<span class="go">Open ›</span></a>`
+                    : `<div class="f"${p.lat ? ` onclick="bdShowPostOnMap('${p.id}')"` : ''}><i data-lucide="map-pin" aria-hidden="true"></i>${esc(p.place_name)}${p.lat ? '<span class="go">Map ›</span>' : ''}</div>`) : ''}
                 ${bdPrice(p) ? `<div class="f"><i data-lucide="coins" aria-hidden="true"></i>${esc(bdPrice(p))}${Number(p.price) ? ` ${esc(selectedGroup.currency_name || 'credits')}, paid in the app` : ''}</div>` : ''}
             </div>
             ${p.detail ? `<p class="bd-desc">${esc(p.detail)}</p>` : ''}
@@ -230,42 +235,106 @@ function boardPay(id) {
     else if (typeof showModal === 'function') showModal('send');
 }
 
+// ---------- themes (built-in covers) ----------
+// A post's look is stored in image_url: a real URL for an uploaded photo, or
+// "theme:<key>" for one of these. Nothing to set up server side.
+const BOARD_THEMES = {
+    dusk:    { name: 'Dusk',     bg: 'linear-gradient(135deg,#6a3fb5,#b05fa8)', pat: 'dots',   accent: '#6a3fb5' },
+    tide:    { name: 'Tide',     bg: 'linear-gradient(135deg,#1f3a93,#2d8fd5)', pat: 'waves',  accent: '#1f3a93' },
+    grove:   { name: 'Grove',    bg: 'linear-gradient(135deg,#167a52,#5bc48a)', pat: 'leaves', accent: '#167a52' },
+    ember:   { name: 'Ember',    bg: 'linear-gradient(135deg,#b4541a,#f0a26a)', pat: 'rays',   accent: '#b4541a' },
+    honey:   { name: 'Honey',    bg: 'linear-gradient(135deg,#b7791f,#f2c94c)', pat: 'dots',   accent: '#9a6416' },
+    rose:    { name: 'Rose',     bg: 'linear-gradient(135deg,#c2185b,#f48fb1)', pat: 'confetti', accent: '#c2185b' },
+    midnight:{ name: 'Midnight', bg: 'linear-gradient(135deg,#0f2d45,#1a4a6e)', pat: 'stars',  accent: '#1a4a6e' },
+    mint:    { name: 'Mint',     bg: 'linear-gradient(135deg,#0f8b8d,#7fd1c4)', pat: 'waves',  accent: '#0f8b8d' },
+    slate:   { name: 'Slate',    bg: 'linear-gradient(135deg,#3b4a5c,#7a8ea3)', pat: 'grid',   accent: '#3b4a5c' },
+    party:   { name: 'Party',    bg: 'linear-gradient(135deg,#ff6b6b,#feca57,#48dbfb)', pat: 'confetti', accent: '#e05252' },
+    paper:   { name: 'Paper',    bg: 'linear-gradient(135deg,#f6f1e7,#e9e1d1)', pat: 'grid',   accent: '#8a7355', dark: true },
+    neon:    { name: 'Neon',     bg: 'linear-gradient(135deg,#111,#2a2a2a)', pat: 'rays',   accent: '#b3ff00', glow: '#b3ff00' },
+};
+const BOARD_DEFAULT_THEME = { event: 'dusk', offer: 'grove', ask: 'honey', notice: 'slate' };
+function bdThemeOf(p) {
+    if (p.image_url && p.image_url.startsWith('theme:')) return BOARD_THEMES[p.image_url.slice(6)] ? p.image_url.slice(6) : BOARD_DEFAULT_THEME[p.kind];
+    if (p.image_url) return null;
+    return BOARD_DEFAULT_THEME[p.kind] || 'dusk';
+}
+function bdCoverAttrs(p) {
+    const t = bdThemeOf(p);
+    if (!t) return { cls: 'has-img', style: `background-image:url('${esc(p.image_url)}')` };
+    const th = BOARD_THEMES[t];
+    return { cls: `pat-${th.pat}${th.dark ? ' dark' : ''}${th.glow ? ' glow' : ''}`, style: `background:${th.bg}` };
+}
+function bdAccent(p) { const t = bdThemeOf(p); return t ? BOARD_THEMES[t].accent : '#1a2433'; }
+
 // ---------- compose ----------
 let bdKind = 'event';
+let bdCoverFile = null;      // uploaded photo (File)
+let bdCoverTheme = 'dusk';   // selected built-in theme, ignored when a photo is set
+let bdLocMode = 'place';     // 'place' | 'online'
+function bdTzLabel() {
+    try { const parts = new Intl.DateTimeFormat([], { timeZoneName: 'short' }).formatToParts(new Date()); const tz = parts.find(x => x.type === 'timeZoneName')?.value || ''; const zone = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; return `${zone.replace(/_/g, ' ')}${tz ? ' (' + tz + ')' : ''}`; } catch (_) { return 'your local time'; }
+}
+function bdLocalInput(d) { const z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; }
+function bdTimeInput(d) { const z = n => String(n).padStart(2, '0'); return `${z(d.getHours())}:${z(d.getMinutes())}`; }
 function openBoardCompose() {
     const body = document.getElementById('modalBody'); const overlay = document.getElementById('modalOverlay');
-    body.classList.remove('beta-ios-modal'); body.classList.add('bd-sheet', 'bd-keep');
-    bdCoverFile = null;
+    body.classList.remove('beta-ios-modal'); body.classList.add('bd-sheet', 'bd-keep'); body.style.removeProperty('--bd-accent');
+    bdCoverFile = null; bdCoverTheme = BOARD_DEFAULT_THEME[bdKind]; bdLocMode = 'place';
+    const start = new Date(); start.setDate(start.getDate() + 1); start.setHours(18, 0, 0, 0);
+    const end = new Date(start); end.setHours(21);
     body.innerHTML = `
+        <div class="bd-preview" id="bdPreview"><div class="deco"></div><div class="bd-preview-top"><button type="button" class="bd-x light" onclick="closeModal()">Cancel</button><span class="bd-preview-tag" id="bdPreviewTag">Event</span></div><h3 id="bdPreviewTitle">Your title here</h3></div>
         <div class="bd-sh">
-            <div class="bd-hrow"><h3 class="bd-h">New post</h3><button type="button" class="bd-x" onclick="closeModal()" aria-label="Cancel">Cancel</button></div>
             <div class="bd-kinds" id="bdKinds"></div>
-            <label class="bd-coverpick" id="bdCoverPick"><input type="file" accept="image/*" onchange="bdPickCover(this)" hidden><span class="ph"><i data-lucide="image-plus" aria-hidden="true"></i>Add a cover photo <small>(optional)</small></span></label>
-            <input class="bd-f" id="bdTitle" placeholder="Title" maxlength="120">
+            <div class="bd-covers" id="bdCovers"></div>
+            <input class="bd-f big" id="bdTitle" placeholder="Title" maxlength="120" oninput="bdPreviewUpdate()">
             <textarea class="bd-f" id="bdDetail" rows="2" placeholder="A line or two (optional)" maxlength="1000"></textarea>
-            <div id="bdEvF">
-                <div class="bd-frow"><label class="bd-lab">Starts<input class="bd-f" id="bdStart" type="datetime-local"></label><label class="bd-lab">Ends <small>(optional)</small><input class="bd-f" id="bdEnd" type="time"></label></div>
+            <div id="bdEvF" class="bd-when">
+                <div class="bd-when-row"><span class="dot start"></span><b>Start</b><input class="bd-f sm" id="bdStartD" type="date" value="${bdLocalInput(start)}"><input class="bd-f sm" id="bdStartT" type="time" value="${bdTimeInput(start)}"></div>
+                <div class="bd-when-row"><span class="dot end"></span><b>End</b><input class="bd-f sm" id="bdEndD" type="date" value="${bdLocalInput(end)}"><input class="bd-f sm" id="bdEndT" type="time" value="${bdTimeInput(end)}"></div>
+                <div class="bd-tz"><i data-lucide="globe" aria-hidden="true"></i>${esc(bdTzLabel())}</div>
             </div>
-            <input class="bd-f" id="bdPlace" placeholder="Where (optional)">
-            <label class="bd-check"><input type="checkbox" id="bdHere"> Pin my current location on the map</label>
+            <div class="bd-loc">
+                <div class="bd-seg"><button type="button" class="on" id="bdLocPlace" onclick="bdSetLoc('place')">In person</button><button type="button" id="bdLocOnline" onclick="bdSetLoc('online')">Online</button></div>
+                <div id="bdLocPlaceF"><input class="bd-f" id="bdPlace" placeholder="Address or place name"><label class="bd-check"><input type="checkbox" id="bdHere"> Pin my current location on the map</label></div>
+                <div id="bdLocOnlineF" style="display:none"><input class="bd-f" id="bdLink" type="url" placeholder="https://… (Zoom, Meet, Second Life, anything)"></div>
+            </div>
             <input class="bd-f" id="bdPriceIn" placeholder="Price in ${esc(selectedGroup.currency_name || 'credits')} (blank = free)" inputmode="decimal" style="display:none">
             <p class="bd-hint">Everyone in ${esc(selectedGroup.name)} sees it and gets a notification. It moves to Past when it’s over or you mark it done.</p>
             <button class="bd-btn" style="width:100%" id="bdPostBtn" onclick="submitBoardPost()">Post</button>
         </div>`;
-    bdRenderKinds();
+    bdRenderKinds(); bdRenderCovers(); bdPreviewUpdate();
     overlay.classList.remove('hidden');
     if (typeof refreshLucideIcons === 'function') refreshLucideIcons();
     setTimeout(() => document.getElementById('bdTitle')?.focus(), 250);
 }
-let bdCoverFile = null;
+function bdRenderKinds() {
+    document.getElementById('bdKinds').innerHTML = Object.entries(BOARD_KINDS).map(([k, v]) => `<button type="button" class="${bdKind === k ? 'on' : ''}" onclick="bdSetKind('${k}')">${v.label}</button>`).join('');
+    document.getElementById('bdEvF').style.display = bdKind === 'event' ? 'block' : 'none';
+    document.getElementById('bdPriceIn').style.display = (bdKind === 'offer' || bdKind === 'ask') ? 'block' : 'none';
+    document.getElementById('bdPreviewTag').textContent = BOARD_KINDS[bdKind].label;
+}
+function bdSetKind(k) { const wasDefault = bdCoverTheme === BOARD_DEFAULT_THEME[bdKind]; bdKind = k; if (wasDefault && !bdCoverFile) bdCoverTheme = BOARD_DEFAULT_THEME[k]; bdRenderKinds(); bdRenderCovers(); bdPreviewUpdate(); }
+function bdSetLoc(m) { bdLocMode = m; document.getElementById('bdLocPlace').classList.toggle('on', m === 'place'); document.getElementById('bdLocOnline').classList.toggle('on', m === 'online'); document.getElementById('bdLocPlaceF').style.display = m === 'place' ? 'block' : 'none'; document.getElementById('bdLocOnlineF').style.display = m === 'online' ? 'block' : 'none'; }
+function bdRenderCovers() {
+    const el = document.getElementById('bdCovers'); if (!el) return;
+    el.innerHTML = `<label class="bd-tile upload${bdCoverFile ? ' on' : ''}" title="Your photo"><input type="file" accept="image/*" onchange="bdPickCover(this)" hidden>${bdCoverFile ? `<img src="${URL.createObjectURL(bdCoverFile)}" alt="">` : '<i data-lucide="image-plus" aria-hidden="true"></i><small>Photo</small>'}</label>` +
+        Object.entries(BOARD_THEMES).map(([k, t]) => `<button type="button" class="bd-tile pat-${t.pat}${t.dark ? ' dark' : ''}${!bdCoverFile && bdCoverTheme === k ? ' on' : ''}" style="background:${t.bg}" onclick="bdChooseTheme('${k}')" title="${t.name}"><small>${t.name}</small></button>`).join('');
+    if (typeof refreshLucideIcons === 'function') refreshLucideIcons();
+}
+function bdChooseTheme(k) { bdCoverTheme = k; bdCoverFile = null; bdRenderCovers(); bdPreviewUpdate(); }
 async function bdPickCover(input) {
     const f = input.files && input.files[0]; if (!f) return;
     try { bdCoverFile = typeof resizeImageFileForChat === 'function' ? await resizeImageFileForChat(f) : f; } catch (_) { bdCoverFile = f; }
-    const url = URL.createObjectURL(bdCoverFile);
-    const pick = document.getElementById('bdCoverPick');
-    pick.classList.add('has');
-    pick.style.backgroundImage = `url('${url}')`;
-    pick.querySelector('.ph').innerHTML = '<span class="chg">Change photo</span>';
+    bdRenderCovers(); bdPreviewUpdate();
+}
+function bdPreviewUpdate() {
+    const pv = document.getElementById('bdPreview'); if (!pv) return;
+    const t = document.getElementById('bdTitle')?.value.trim();
+    document.getElementById('bdPreviewTitle').textContent = t || 'Your title here';
+    pv.className = 'bd-preview';
+    if (bdCoverFile) { pv.classList.add('has-img'); pv.style.background = `url('${URL.createObjectURL(bdCoverFile)}') center/cover`; }
+    else { const th = BOARD_THEMES[bdCoverTheme]; pv.classList.add('pat-' + th.pat); if (th.dark) pv.classList.add('dark'); if (th.glow) pv.classList.add('glow'); pv.style.background = th.bg; }
 }
 async function bdUploadCover() {
     if (!bdCoverFile) return null;
@@ -273,11 +342,6 @@ async function bdUploadCover() {
     const { error } = await db.storage.from('avatars').upload(path, bdCoverFile, { upsert: false, contentType: bdCoverFile.type || 'image/jpeg' });
     if (error) throw error;
     return db.storage.from('avatars').getPublicUrl(path).data?.publicUrl || null;
-}
-function bdRenderKinds() {
-    document.getElementById('bdKinds').innerHTML = Object.entries(BOARD_KINDS).map(([k, v]) => `<button type="button" class="${bdKind === k ? 'on' : ''}" onclick="bdKind='${k}';bdRenderKinds()">${v.label}</button>`).join('');
-    document.getElementById('bdEvF').style.display = bdKind === 'event' ? 'block' : 'none';
-    document.getElementById('bdPriceIn').style.display = (bdKind === 'offer' || bdKind === 'ask') ? 'block' : 'none';
 }
 function bdGetPosition() {
     return new Promise(res => {
@@ -288,21 +352,26 @@ function bdGetPosition() {
 async function submitBoardPost() {
     const title = document.getElementById('bdTitle').value.trim();
     if (!title) { showToast('Give it a title', 'error'); return; }
-    const btn = document.getElementById('bdPostBtn'); btn.disabled = true; btn.textContent = 'Posting…';
-    const row = { group_id: selectedGroup.id, author_id: currentUser.id, kind: bdKind, title, detail: document.getElementById('bdDetail').value.trim() || null, place_name: document.getElementById('bdPlace').value.trim() || null };
+    const btn = document.getElementById('bdPostBtn'); const fail = m => { showToast(m, 'error'); btn.disabled = false; btn.textContent = 'Post'; };
+    btn.disabled = true; btn.textContent = 'Posting…';
+    const row = { group_id: selectedGroup.id, author_id: currentUser.id, kind: bdKind, title, detail: document.getElementById('bdDetail').value.trim() || null, place_name: null };
+    if (bdLocMode === 'online') { const link = document.getElementById('bdLink').value.trim(); if (link && !/^https?:\/\//i.test(link)) return fail('The link should start with https://'); row.place_name = link || null; }
+    else row.place_name = document.getElementById('bdPlace').value.trim() || null;
     if (bdKind === 'event') {
-        const s = document.getElementById('bdStart').value;
-        if (!s) { showToast('When is it?', 'error'); btn.disabled = false; btn.textContent = 'Post'; return; }
-        row.starts_at = new Date(s).toISOString();
-        const e = document.getElementById('bdEnd').value;
-        if (e) { const d = new Date(s); const [h, m] = e.split(':').map(Number); d.setHours(h, m, 0, 0); if (d < new Date(s)) d.setDate(d.getDate() + 1); row.ends_at = d.toISOString(); }
-        else { const d = new Date(s); d.setHours(d.getHours() + 3); row.ends_at = d.toISOString(); }
+        const sd = document.getElementById('bdStartD').value, st = document.getElementById('bdStartT').value || '18:00';
+        if (!sd) return fail('When does it start?');
+        const start = new Date(`${sd}T${st}`); if (isNaN(start)) return fail('Check the start date');
+        const ed = document.getElementById('bdEndD').value || sd, et = document.getElementById('bdEndT').value;
+        let end = et ? new Date(`${ed}T${et}`) : new Date(start.getTime() + 3 * 3600e3);
+        if (isNaN(end) || end <= start) return fail('The end needs to be after the start');
+        row.starts_at = start.toISOString(); row.ends_at = end.toISOString();
     }
-    if (bdKind === 'offer' || bdKind === 'ask') { const v = document.getElementById('bdPriceIn').value.trim(); row.price = v ? Number(v) : (bdKind === 'offer' ? 0 : null); if (v && !(row.price >= 0)) { showToast('Check the price', 'error'); btn.disabled = false; btn.textContent = 'Post'; return; } }
-    if (document.getElementById('bdHere').checked) { const pos = await bdGetPosition(); if (pos) { row.lat = pos.lat; row.lng = pos.lng; } else showToast('Could not get your location, posting without a pin', 'error'); }
-    if (bdCoverFile) { try { row.image_url = await bdUploadCover(); } catch (e) { showToast('Photo upload failed, posting without it', 'error'); } }
+    if (bdKind === 'offer' || bdKind === 'ask') { const v = document.getElementById('bdPriceIn').value.trim(); row.price = v ? Number(v) : (bdKind === 'offer' ? 0 : null); if (v && !(row.price >= 0)) return fail('Check the price'); }
+    if (bdLocMode === 'place' && document.getElementById('bdHere').checked) { const pos = await bdGetPosition(); if (pos) { row.lat = pos.lat; row.lng = pos.lng; } else showToast('Could not get your location, posting without a pin', 'error'); }
+    if (bdCoverFile) { try { row.image_url = await bdUploadCover(); } catch (e) { showToast('Photo upload failed, using the theme instead', 'error'); row.image_url = 'theme:' + bdCoverTheme; } }
+    else row.image_url = 'theme:' + bdCoverTheme;
     const { error } = await db.from('group_posts').insert(row);
-    if (error) { showToast(error.message, 'error'); btn.disabled = false; btn.textContent = 'Post'; return; }
+    if (error) return fail(error.message);
     closeModal();
     showToast('Posted. The group gets a notification.', 'info');
     await loadBoard();
