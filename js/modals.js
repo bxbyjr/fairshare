@@ -378,6 +378,7 @@ function closeModal(_options = {}) {
     document.getElementById('modalBody').classList.remove('beta-ios-modal');
     document.getElementById('modalBody').classList.remove('welcome-modal');
     document.getElementById('modalBody').classList.remove('bd-sheet');
+    document.getElementById('modalBody').classList.remove('bd-keep');
     if (closingShareInfo && welcomeChainActive) {
         welcomeChainActive = false;
         setTimeout(showGetAppStep, 300);

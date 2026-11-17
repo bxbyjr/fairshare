@@ -21,7 +21,8 @@ const bdFirst = n => (n || 'Member').split(' ')[0];
 const bdIni = n => (n || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join('');
 const bdIsPast = p => p.status === 'done' || (p.ends_at && new Date(p.ends_at) < new Date()) || (p.kind === 'event' && !p.ends_at && p.starts_at && new Date(p.starts_at) < Date.now() - 3 * 3600e3);
 const bdMine = p => !!p.i_responded;
-const bdCoverClass = p => BOARD_KINDS[p.kind].cover + ((parseInt(String(p.id).replace(/-/g, '').slice(0, 6), 16) % 2) ? ' alt' : '');
+const bdCoverClass = p => BOARD_KINDS[p.kind].cover + ((parseInt(String(p.id).replace(/-/g, '').slice(0, 6), 16) % 2) ? ' alt' : '') + (p.image_url ? ' has-img' : '');
+const bdCoverStyle = p => p.image_url ? ` style="background-image:url('${esc(p.image_url)}')"` : '';
 
 function bdAvatar(name, image, cls) {
     return image ? `<img class="bd-av ${cls || ''}" src="${esc(image)}" alt="">` : `<span class="bd-av ${cls || ''}">${esc(bdIni(name))}</span>`;
@@ -88,7 +89,7 @@ function bdCard(p, past) {
     const ev = p.kind === 'event';
     const d = ev && p.starts_at ? new Date(p.starts_at) : null;
     return `<button class="bd-card" onclick="openBoardPost('${p.id}')">
-        <div class="bd-cover ${bdCoverClass(p)}${past ? ' past' : ''}"><div class="deco"></div>
+        <div class="bd-cover ${bdCoverClass(p)}${past ? ' past' : ''}"${bdCoverStyle(p)}><div class="deco"></div>
             ${d ? `<div class="date"><small>${d.toLocaleDateString([], { month: 'short' })}</small><b>${d.getDate()}</b></div>` : ''}
             ${!ev && bdPrice(p) ? `<div class="pill">${esc(bdPrice(p))}</div>` : ''}
             ${past ? `<div class="pill">${p.status === 'done' ? 'Done' : 'Ended'}</div>` : (ev && bdMine(p) ? '<div class="pill">✓ Going</div>' : '')}
@@ -186,7 +187,7 @@ function openBoardPost(id) {
     body.classList.remove('beta-ios-modal'); body.classList.add('bd-sheet');
     const r = p.responders || [];
     body.innerHTML = `
-        <div class="bd-cover big ${bdCoverClass(p)}${past ? ' past' : ''}"><div class="deco"></div><h3>${esc(p.title)}</h3></div>
+        <div class="bd-cover big ${bdCoverClass(p)}${past ? ' past' : ''}"${bdCoverStyle(p)}><div class="deco"></div><h3>${esc(p.title)}</h3></div>
         <div class="bd-sh">
             <div class="bd-host">${bdAvatar(p.author_name, p.author_image, 'lg')}<div><b>${esc(p.author_name)}</b><span>${ev ? 'is hosting' : p.kind === 'ask' ? 'is asking' : 'posted this'} · ${bdDate(p.created_at)}</span></div></div>
             <div class="bd-facts">
@@ -233,15 +234,17 @@ function boardPay(id) {
 let bdKind = 'event';
 function openBoardCompose() {
     const body = document.getElementById('modalBody'); const overlay = document.getElementById('modalOverlay');
-    body.classList.remove('beta-ios-modal'); body.classList.add('bd-sheet');
+    body.classList.remove('beta-ios-modal'); body.classList.add('bd-sheet', 'bd-keep');
+    bdCoverFile = null;
     body.innerHTML = `
         <div class="bd-sh">
-            <h3 class="bd-h">New post</h3>
+            <div class="bd-hrow"><h3 class="bd-h">New post</h3><button type="button" class="bd-x" onclick="closeModal()" aria-label="Cancel">Cancel</button></div>
             <div class="bd-kinds" id="bdKinds"></div>
+            <label class="bd-coverpick" id="bdCoverPick"><input type="file" accept="image/*" onchange="bdPickCover(this)" hidden><span class="ph"><i data-lucide="image-plus" aria-hidden="true"></i>Add a cover photo <small>(optional)</small></span></label>
             <input class="bd-f" id="bdTitle" placeholder="Title" maxlength="120">
             <textarea class="bd-f" id="bdDetail" rows="2" placeholder="A line or two (optional)" maxlength="1000"></textarea>
             <div id="bdEvF">
-                <div class="bd-frow"><input class="bd-f" id="bdStart" type="datetime-local"><input class="bd-f" id="bdEnd" type="time" title="Ends"></div>
+                <div class="bd-frow"><label class="bd-lab">Starts<input class="bd-f" id="bdStart" type="datetime-local"></label><label class="bd-lab">Ends <small>(optional)</small><input class="bd-f" id="bdEnd" type="time"></label></div>
             </div>
             <input class="bd-f" id="bdPlace" placeholder="Where (optional)">
             <label class="bd-check"><input type="checkbox" id="bdHere"> Pin my current location on the map</label>
@@ -251,7 +254,25 @@ function openBoardCompose() {
         </div>`;
     bdRenderKinds();
     overlay.classList.remove('hidden');
+    if (typeof refreshLucideIcons === 'function') refreshLucideIcons();
     setTimeout(() => document.getElementById('bdTitle')?.focus(), 250);
+}
+let bdCoverFile = null;
+async function bdPickCover(input) {
+    const f = input.files && input.files[0]; if (!f) return;
+    try { bdCoverFile = typeof resizeImageFileForChat === 'function' ? await resizeImageFileForChat(f) : f; } catch (_) { bdCoverFile = f; }
+    const url = URL.createObjectURL(bdCoverFile);
+    const pick = document.getElementById('bdCoverPick');
+    pick.classList.add('has');
+    pick.style.backgroundImage = `url('${url}')`;
+    pick.querySelector('.ph').innerHTML = '<span class="chg">Change photo</span>';
+}
+async function bdUploadCover() {
+    if (!bdCoverFile) return null;
+    const path = `${currentUser.id}/board_${Date.now()}.jpg`;
+    const { error } = await db.storage.from('avatars').upload(path, bdCoverFile, { upsert: false, contentType: bdCoverFile.type || 'image/jpeg' });
+    if (error) throw error;
+    return db.storage.from('avatars').getPublicUrl(path).data?.publicUrl || null;
 }
 function bdRenderKinds() {
     document.getElementById('bdKinds').innerHTML = Object.entries(BOARD_KINDS).map(([k, v]) => `<button type="button" class="${bdKind === k ? 'on' : ''}" onclick="bdKind='${k}';bdRenderKinds()">${v.label}</button>`).join('');
@@ -279,6 +300,7 @@ async function submitBoardPost() {
     }
     if (bdKind === 'offer' || bdKind === 'ask') { const v = document.getElementById('bdPriceIn').value.trim(); row.price = v ? Number(v) : (bdKind === 'offer' ? 0 : null); if (v && !(row.price >= 0)) { showToast('Check the price', 'error'); btn.disabled = false; btn.textContent = 'Post'; return; } }
     if (document.getElementById('bdHere').checked) { const pos = await bdGetPosition(); if (pos) { row.lat = pos.lat; row.lng = pos.lng; } else showToast('Could not get your location, posting without a pin', 'error'); }
+    if (bdCoverFile) { try { row.image_url = await bdUploadCover(); } catch (e) { showToast('Photo upload failed, posting without it', 'error'); } }
     const { error } = await db.from('group_posts').insert(row);
     if (error) { showToast(error.message, 'error'); btn.disabled = false; btn.textContent = 'Post'; return; }
     closeModal();
