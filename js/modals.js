@@ -135,6 +135,12 @@ function showModal(type) {
             body.innerHTML = `
                 <h3 class="welcome-title">Welcome to Union</h3>
                 <p class="welcome-sub">You're connected with ${spName}. What should we call you?</p>
+                <label class="welcome-photo" id="welcomePhoto" title="Add a photo">
+                    <input type="file" accept="image/*" hidden onchange="pickWelcomePhoto(this)">
+                    ${currentProfile?.profile_image_url ? `<img src="${esc(currentProfile.profile_image_url)}" alt="">` : '<i data-lucide="camera" aria-hidden="true"></i>'}
+                    <span class="welcome-photo-plus">+</span>
+                </label>
+                <p class="welcome-photo-hint" id="welcomePhotoHint">Add a photo so friends recognise you <span>(optional)</span></p>
                 <div class="form-group">
                     <input type="text" id="welcomeNameInput" maxlength="80" autocomplete="name" placeholder="Your name" value="${esc(suggestedWelcomeName())}">
                     <p id="welcomeNameError" class="welcome-error hidden">Enter a name so people know it's you.</p>
@@ -143,6 +149,8 @@ function showModal(type) {
                     <button type="button" class="btn btn-primary" id="welcomeNameBtn" onclick="submitWelcomeName()">Continue</button>
                 </div>
             `;
+            welcomePhotoFile = null;
+            if (typeof refreshLucideIcons === 'function') refreshLucideIcons();
             const input = document.getElementById('welcomeNameInput');
             input?.addEventListener('input', () => document.getElementById('welcomeNameError')?.classList.add('hidden'));
             input?.addEventListener('keydown', (e) => { if (e.key === 'Enter') submitWelcomeName(); });
@@ -1045,6 +1053,28 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+// --- Soft "Welcome to Union" the first time someone opens the app signed in.
+// One line, fades on its own. Keyed per user so it shows once per device.
+function maybeShowWelcomeGreeting() {
+    try {
+        if (!currentUser) return;
+        const key = `fairshare_welcomed_${currentUser.id}`;
+        if (localStorage.getItem(key)) return;
+        const created = currentProfile?.created_at ? new Date(currentProfile.created_at) : null;
+        if (created && Date.now() - created.getTime() > 14 * 864e5) { localStorage.setItem(key, '1'); return; }   // not new, don't greet
+        localStorage.setItem(key, '1');
+        const dn = (currentProfile?.display_name || '').trim();
+        const emailLocal = String(currentUser?.email || '').split('@')[0];
+        const first = dn && dn !== emailLocal ? dn.split(/\s+/)[0] : '';
+        const el = document.createElement('div');
+        el.className = 'welcome-greet';
+        el.innerHTML = `<span class="wg-spark" aria-hidden="true">✦</span><span>Welcome to Union${first ? `, ${esc(first)}` : ''}</span>`;
+        document.body.appendChild(el);
+        requestAnimationFrame(() => el.classList.add('on'));
+        setTimeout(() => { el.classList.remove('on'); setTimeout(() => el.remove(), 600); }, 3200);
+    } catch (_) { /* never block the app over a greeting */ }
+}
+
 // --- Welcome steps for a new member who joined through an invite ---
 // 1) What should we call you?  2) Share contact info with your sponsor
 // (existing dialog)  3) Get the app (web only, not on Android).
@@ -1068,6 +1098,29 @@ function suggestedWelcomeName() {
     return dn;
 }
 
+let welcomePhotoFile = null;
+async function pickWelcomePhoto(input) {
+    const f = input.files && input.files[0]; if (!f) return;
+    try { welcomePhotoFile = typeof resizeImageFileForChat === 'function' ? await resizeImageFileForChat(f) : f; } catch (_) { welcomePhotoFile = f; }
+    const box = document.getElementById('welcomePhoto'); if (!box) return;
+    box.classList.add('has');
+    box.querySelector('img, svg, i')?.remove();
+    const img = document.createElement('img'); img.src = URL.createObjectURL(welcomePhotoFile); img.alt = '';
+    box.prepend(img);
+    const hint = document.getElementById('welcomePhotoHint'); if (hint) hint.textContent = 'Looking good. Tap to change.';
+}
+async function saveWelcomePhoto() {
+    if (!welcomePhotoFile || !currentUser) return;
+    const filePath = `${currentUser.id}/profile.jpg`;
+    const { error: upErr } = await db.storage.from('avatars').upload(filePath, welcomePhotoFile, { upsert: true, contentType: welcomePhotoFile.type || 'image/jpeg' });
+    if (upErr) throw upErr;
+    const newUrl = db.storage.from('avatars').getPublicUrl(filePath).data.publicUrl + '?t=' + Date.now();
+    const { error } = await db.from('profiles').update({ profile_image_url: newUrl }).eq('id', currentUser.id);
+    if (error) throw error;
+    if (currentProfile) currentProfile.profile_image_url = newUrl;
+    setHeaderAvatar(newUrl);
+}
+
 async function submitWelcomeName() {
     const input = document.getElementById('welcomeNameInput');
     const name = (input?.value || '').trim();
@@ -1078,6 +1131,10 @@ async function submitWelcomeName() {
     }
     const btn = document.getElementById('welcomeNameBtn');
     if (btn) btn.disabled = true;
+    if (welcomePhotoFile) {
+        try { await saveWelcomePhoto(); }
+        catch (e) { console.warn('welcome photo:', e); showToast('Could not save your photo. You can add one from your profile later.', 'error'); }
+    }
     if (name !== (currentProfile?.display_name || '')) {
         const { error } = await db.from('profiles').update({ display_name: name }).eq('id', currentUser.id);
         if (error) {

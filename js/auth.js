@@ -540,6 +540,7 @@ async function showApp(navigateToGroupId) {
     document.getElementById('userDisplay').textContent = APP_NAME;
     setHeaderAvatar(currentProfile?.profile_image_url || null);
     initContactsSortPrefs();
+    if (typeof maybeShowWelcomeGreeting === 'function') setTimeout(maybeShowWelcomeGreeting, 700);
 
     if (!navigateToGroupId) {
         const storedNav = localStorage.getItem('fairshare_notification_nav');
