@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fairshare-__BUILD_HASH__';
+const CACHE_NAME = 'fairshare-faade45';
 const APP_NAME = 'Union';
 
 // App shell files to pre-cache on install
