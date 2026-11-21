@@ -1058,11 +1058,18 @@ document.addEventListener('keydown', (e) => {
 function maybeShowWelcomeGreeting() {
     try {
         if (!currentUser) return;
+        // ?preview=welcome shows the first-open pieces to any account, for review.
+        const preview = /[?&]preview=welcome/.test(location.search);
         const key = `fairshare_welcomed_${currentUser.id}`;
-        if (localStorage.getItem(key)) return;
-        const created = currentProfile?.created_at ? new Date(currentProfile.created_at) : null;
-        if (created && Date.now() - created.getTime() > 14 * 864e5) { localStorage.setItem(key, '1'); return; }   // not new, don't greet
-        localStorage.setItem(key, '1');
+        if (!preview) {
+            if (localStorage.getItem(key)) return;
+            const created = currentProfile?.created_at ? new Date(currentProfile.created_at) : null;
+            if (created && Date.now() - created.getTime() > 14 * 864e5) { localStorage.setItem(key, '1'); return; }   // not new, don't greet
+            localStorage.setItem(key, '1');
+        } else {
+            welcomeSponsorName = 'Philip';
+            setTimeout(() => { showModal('welcomeName'); setTimeout(() => document.getElementById('welcomeNameInput')?.focus(), 50); }, 3800);
+        }
         const dn = (currentProfile?.display_name || '').trim();
         const emailLocal = String(currentUser?.email || '').split('@')[0];
         const first = dn && dn !== emailLocal ? dn.split(/\s+/)[0] : '';
